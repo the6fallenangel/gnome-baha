@@ -1,15 +1,29 @@
-/**
- * Welcome to Cloudflare Workers! This is your first worker.
- *
- * - Run `npm run dev` in your terminal to start a development server
- * - Open a browser tab at http://localhost:8787/ to see your worker in action
- * - Run `npm run deploy` to publish your worker
- *
- * Learn more at https://developers.cloudflare.com/workers/
- */
-
 export default {
 	async fetch(request, env, ctx) {
-		return new Response("Hello World!");
+		const url = new URL(request.url);
+
+		if (url.pathname === '/latest') {
+			return await handleLatest(env);
+		}
+
+		return new Response('Baha worker is running.', { status: 200 });
 	},
 };
+
+async function handleLatest(env) {
+	try {
+		const res = await fetch(env.API);
+
+		if (!res.ok) {
+			return Response.json({ error: 'Upstream api error', status: res.status }, { status: 502 });
+		}
+
+		const data = await res.json();
+
+		return Response.json(data, {
+			headers: { 'Cache-Control': 'no-store' },
+		});
+	} catch (err) {
+		return Response.json({ error: 'Failed to fetch upstream data' }, { status: 500 });
+	}
+}
