@@ -34,7 +34,11 @@ async function handleLatest(env) {
 
 async function refreshRates(env) {
 	try {
-		const res = await fetch(env.API_URL);
+		const res = await fetch(env.API_URL, {
+			headers: {
+				Authorization: `Bearer ${env.API_KEY}`,
+			},
+		});
 		if (!res.ok) return null;
 
 		const data = await res.json();
