@@ -40,7 +40,7 @@ async function refreshRates(env) {
 		const data = await res.json();
 
 		await env.BAHA_RATES.put(KV_KEY, JSON.stringify(data), {
-			expirationTtl: 600,
+			expirationTtl: 86400,
 		});
 
 		return data;
