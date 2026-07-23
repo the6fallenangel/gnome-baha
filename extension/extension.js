@@ -363,7 +363,8 @@ const BahaIndicator = GObject.registerClass(
 
       if (data.date) {
         const prefix = lang === "fa" ? "آخرین بروزرسانی" : "Last updated";
-        this._lastUpdateItem.label.set_text(`${prefix}: ${data.date}`);
+        const date = lang === "fa" ? `\u200E${data.date}\u200E` : data.date;
+        this._lastUpdateItem.label.set_text(`${prefix}: ${date}`);
       }
 
       this._applyText();
