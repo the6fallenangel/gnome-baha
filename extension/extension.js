@@ -24,10 +24,7 @@ const BahaIndicator = GObject.registerClass(
       });
       this.add_child(this._label);
 
-      this._lastUpdateItem = new PopupMenu.PopupMenuItem("Last updated: --", {
-        reactive: false,
-      });
-      this.menu.addMenuItem(this._lastUpdateItem);
+      this._buildMenu();
 
       this._lastData = null;
       this._session = new Soup.Session();
@@ -35,6 +32,70 @@ const BahaIndicator = GObject.registerClass(
       this._settingsChangedId = this._settings.connect("changed", () => {
         if (this._lastData) this._render(this._lastData);
       });
+    }
+
+    _buildMenu() {
+      const symbolSwitches = [
+        ["show-usd", "USD | دلار"],
+        ["show-eur", "EUR | یورو"],
+        ["show-gold18k", "Gold 18K | طلا 18 عیار"],
+        ["show-btc", "BTC | بیتکوین"],
+      ];
+      for (const [key, label] of symbolSwitches) {
+        const item = new PopupMenu.PopupSwitchMenuItem(
+          label,
+          this._settings.get_boolean(key),
+        );
+        item.connect("toggled", (_item, state) => {
+          this._settings.set_boolean(key, state);
+        });
+        this.menu.addMenuItem(item);
+      }
+
+      this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+
+      const langSubMenuText =
+        this._settings.get_string("language") === "en" ? "Language" : "زبان";
+      this._langSubMenu = new PopupMenu.PopupSubMenuMenuItem(langSubMenuText);
+      this._langItems = {};
+
+      const languages = [
+        ["en", "English"],
+        ["fa", "فارسی"],
+      ];
+
+      for (const [code, label] of languages) {
+        const langItem = new PopupMenu.PopupMenuItem(label);
+        langItem.connect("activate", () => {
+          this._settings.set_string("language", code);
+          this._updateLanguageOrnaments();
+        });
+        this._langSubMenu.menu.addMenuItem(langItem);
+        this._langItems[code] = langItem;
+      }
+
+      this.menu.addMenuItem(this._langSubMenu);
+      this._updateLanguageOrnaments();
+
+      this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+
+      const updatedText =
+        this._settings.get_string("language") === "en"
+          ? "Last updated: --"
+          : "آخرین بروزرسانی";
+      this._lastUpdateItem = new PopupMenu.PopupMenuItem(updatedText, {
+        reactive: false,
+      });
+      this.menu.addMenuItem(this._lastUpdateItem);
+    }
+
+    _updateLanguageOrnaments() {
+      const current = this._settings.get_string("language");
+      for (const [code, item] of Object.entries(this._langItems)) {
+        item.setOrnament(
+          code === current ? PopupMenu.Ornament.DOT : PopupMenu.Ornament.NONE,
+        );
+      }
     }
 
     setData(json, isError) {
