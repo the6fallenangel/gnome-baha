@@ -17,17 +17,29 @@ const BahaIndicator = GObject.registerClass(
       super._init(0.0, "Baha Indicator");
       this._settings = settings;
 
+      this._viewport = new St.Bin({
+        clip_to_allocation: true,
+        x_align: Clutter.ActorAlign.FILL,
+        style_class: "baha-viewport",
+      });
+
       this._label = new St.Label({
         text: "...",
         y_align: Clutter.ActorAlign.CENTER,
-        style_class: "baha-panel-label",
+        x_expand: false,
       });
-      this.add_child(this._label);
+
+      this._viewport.set_child(this._label);
+      this.add_child(this._viewport);
+
+      this._viewport.set_width(-1);
+      this._label.set_width(-1);
 
       this._buildMenu();
 
       this._lastData = null;
       this._session = new Soup.Session();
+      this._scrollTimeoutId = null;
 
       this._settingsChangedId = this._settings.connect("changed", () => {
         if (this._lastData) this._render(this._lastData);
@@ -49,6 +61,9 @@ const BahaIndicator = GObject.registerClass(
         item.connect("toggled", (_item, state) => {
           this._settings.set_boolean(key, state);
         });
+        item.activate = () => {
+          item.toggle();
+        };
         this.menu.addMenuItem(item);
       }
 
@@ -66,10 +81,10 @@ const BahaIndicator = GObject.registerClass(
 
       for (const [code, label] of languages) {
         const langItem = new PopupMenu.PopupMenuItem(label);
-        langItem.connect("activate", () => {
+        langItem.activate = () => {
           this._settings.set_string("language", code);
           this._updateLanguageOrnaments();
-        });
+        };
         this._langSubMenu.menu.addMenuItem(langItem);
         this._langItems[code] = langItem;
       }
@@ -111,13 +126,13 @@ const BahaIndicator = GObject.registerClass(
 
     _render(json) {
       const data = json?.data;
-      if (!data) {
-        this._label.set_text("Baha: --");
-        return;
-      }
-
       const lang = this._settings.get_string("language");
       const parts = [];
+
+      if (!data) {
+        this._label.set_text(lang === "en" ? "Baha: --" : "بها: --");
+        return;
+      }
 
       if (
         this._settings.get_boolean("show-usd") &&
@@ -148,15 +163,48 @@ const BahaIndicator = GObject.registerClass(
         parts.push(lang === "fa" ? `بیت‌کوین ${v}` : `BTC ${v}`);
       }
 
-      this._label.set_text(parts.length ? parts.join("  |  ") : "Baha: --");
+      this._label.set_text(
+        parts.length
+          ? parts.join(" | ")
+          : lang === "en"
+            ? "Baha: --"
+            : "بها: --",
+      );
 
       if (data.date) {
         const prefix = lang === "fa" ? "آخرین بروزرسانی" : "Last updated";
         this._lastUpdateItem.label.set_text(`${prefix}: ${data.date}`);
       }
+
+      GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+        this._restartMarquee();
+        return GLib.SOURCE_REMOVE;
+      });
+    }
+
+    _restartMarquee() {
+      this._label.remove_all_transitions();
+      this._label.set_translation(0, 0, 0);
+
+      const [, labelWidth] = this._label.get_preferred_width(-1);
+      const viewportWidth = this._viewport.get_width();
+
+      const overflow = labelWidth - viewportWidth;
+      if (overflow <= 0) return;
+
+      const PIXELS_PER_SECOND = 40;
+      const durationMs = (overflow / PIXELS_PER_SECOND) * 1000;
+
+      this._label.ease({
+        translation_x: -overflow,
+        duration: durationMs,
+        mode: Clutter.AnimationMode.LINEAR,
+        repeatCount: -1,
+      });
     }
 
     destroy() {
+      this._label.remove_all_transitions();
       if (this._settingsChangedId) {
         this._settings.disconnect(this._settingsChangedId);
         this._settingsChangedId = null;
