@@ -1,10 +1,10 @@
 import St from "gi://St";
 import Clutter from "gi://Clutter";
 import GLib from "gi://GLib";
-import Soup from "gi://Soup?version=3.0";
 import GObject from "gi://GObject";
-import * as Main from "resource:///org/gnome/shell/ui/main.js";
+import Soup from "gi://Soup?version=3.0";
 import { Extension } from "resource:///org/gnome/shell/extensions/extension.js";
+import * as Main from "resource:///org/gnome/shell/ui/main.js";
 import * as PanelMenu from "resource:///org/gnome/shell/ui/panelMenu.js";
 import * as PopupMenu from "resource:///org/gnome/shell/ui/popupMenu.js";
 
@@ -13,8 +13,9 @@ const REFRESH_SECONDS = 180;
 
 const BahaIndicator = GObject.registerClass(
   class BahaIndicator extends PanelMenu.Button {
-    _init() {
+    _init(settings) {
       super._init(0.0, "Baha Indicator");
+      this._settings = settings;
 
       this._label = new St.Label({
         text: "...",
@@ -30,6 +31,10 @@ const BahaIndicator = GObject.registerClass(
 
       this._lastData = null;
       this._session = new Soup.Session();
+
+      this._settingsChangedId = this._settings.connect("changed", () => {
+        if (this._lastData) this._render(this._lastData);
+      });
     }
 
     setData(json, isError) {
@@ -40,7 +45,6 @@ const BahaIndicator = GObject.registerClass(
         this._label.set_text("Baha: --");
         return;
       }
-
       this._render(this._lastData);
     }
 
@@ -51,22 +55,51 @@ const BahaIndicator = GObject.registerClass(
         return;
       }
 
-      const usd = data.currency?.USD?.current;
-      const gold = data.gold?.GOLD18K?.current;
+      const lang = this._settings.get_string("language");
+      const parts = [];
 
-      const usdText = usd ? `USD ${Number(usd).toLocaleString()}` : "USD --";
-      const goldText = gold
-        ? `Gold ${Number(gold).toLocaleString()}`
-        : "Gold --";
+      if (
+        this._settings.get_boolean("show-usd") &&
+        data.currency?.USD?.current
+      ) {
+        const v = Number(data.currency.USD.current).toLocaleString();
+        parts.push(lang === "fa" ? `دلار ${v}` : `USD ${v}`);
+      }
 
-      this._label.set_text(`${usdText} | ${goldText}`);
+      if (
+        this._settings.get_boolean("show-eur") &&
+        data.currency?.EUR?.current
+      ) {
+        const v = Number(data.currency.EUR.current).toLocaleString();
+        parts.push(lang === "fa" ? `یورو ${v}` : `EUR ${v}`);
+      }
+
+      if (
+        this._settings.get_boolean("show-gold18k") &&
+        data.gold?.GOLD18K?.current
+      ) {
+        const v = Number(data.gold.GOLD18K.current).toLocaleString();
+        parts.push(lang === "fa" ? `طلا ${v}` : `Gold ${v}`);
+      }
+
+      if (this._settings.get_boolean("show-btc") && data.crypto?.BTC?.current) {
+        const v = Number(data.crypto.BTC.current).toLocaleString();
+        parts.push(lang === "fa" ? `بیت‌کوین ${v}` : `BTC ${v}`);
+      }
+
+      this._label.set_text(parts.length ? parts.join("  |  ") : "Baha: --");
 
       if (data.date) {
-        this._lastUpdateItem.label.set_text(`Last updated: ${data.date}`);
+        const prefix = lang === "fa" ? "آخرین بروزرسانی" : "Last updated";
+        this._lastUpdateItem.label.set_text(`${prefix}: ${data.date}`);
       }
     }
 
     destroy() {
+      if (this._settingsChangedId) {
+        this._settings.disconnect(this._settingsChangedId);
+        this._settingsChangedId = null;
+      }
       this._session = null;
       super.destroy();
     }
@@ -75,7 +108,8 @@ const BahaIndicator = GObject.registerClass(
 
 export default class BahaExtension extends Extension {
   enable() {
-    this._indicator = new BahaIndicator();
+    this._settings = this.getSettings();
+    this._indicator = new BahaIndicator(this._settings);
     Main.panel.addToStatusArea("baha-indicator", this._indicator);
 
     this._fetchAndUpdate();
@@ -96,6 +130,7 @@ export default class BahaExtension extends Extension {
     }
     this._indicator?.destroy();
     this._indicator = null;
+    this._settings = null;
   }
 
   _fetchAndUpdate() {

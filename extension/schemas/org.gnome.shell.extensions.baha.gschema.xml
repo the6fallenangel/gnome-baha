@@ -1,0 +1,30 @@
+<schemalist>
+  <schema id="org.gnome.shell.extensions.baha" path="/org/gnome/shell/extensions/baha/">
+
+    <key name="show-usd" type="b">
+      <default>true</default>
+      <summary>Show USD</summary>
+    </key>
+
+    <key name="show-eur" type="b">
+      <default>false</default>
+      <summary>Show EUR</summary>
+    </key>
+
+    <key name="show-gold18k" type="b">
+      <default>true</default>
+      <summary>Show 18K Gold</summary>
+    </key>
+
+    <key name="show-btc" type="b">
+      <default>false</default>
+      <summary>Show Bitcoin</summary>
+    </key>
+
+    <key name="language" type="s">
+      <default>'en'</default>
+      <summary>Display language (en or fa)</summary>
+    </key>
+
+  </schema>
+</schemalist>
