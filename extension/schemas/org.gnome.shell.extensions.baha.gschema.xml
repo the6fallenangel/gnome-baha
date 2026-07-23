@@ -1,6 +1,81 @@
 <schemalist>
   <schema id="org.gnome.shell.extensions.baha" path="/org/gnome/shell/extensions/baha/">
 
+    <!-- Gold -->
+    <key name="show-gold18k" type="b">
+      <default>true</default>
+      <summary>Show 18K Gold</summary>
+    </key>
+
+    <key name="show-gold24k" type="b">
+      <default>false</default>
+      <summary>Show 24K Gold</summary>
+    </key>
+
+    <key name="show-gold-ounce" type="b">
+      <default>false</default>
+      <summary>Show Gold Ounce</summary>
+    </key>
+
+    <key name="show-gold-mazaneh" type="b">
+      <default>false</default>
+      <summary>Show Mazaneh</summary>
+    </key>
+
+    <key name="show-seke-bahar" type="b">
+      <default>false</default>
+      <summary>Show Bahar Coin</summary>
+    </key>
+
+    <key name="show-seke-emami" type="b">
+      <default>false</default>
+      <summary>Show Emami Coin</summary>
+    </key>
+
+    <key name="show-seke-nim" type="b">
+      <default>false</default>
+      <summary>Show Half Coin</summary>
+    </key>
+
+    <key name="show-seke-rob" type="b">
+      <default>false</default>
+      <summary>Show Quarter Coin</summary>
+    </key>
+
+    <key name="show-seke-1g" type="b">
+      <default>false</default>
+      <summary>Show 1 Gram Gold Coin</summary>
+    </key>
+
+
+    <!-- Parsian -->
+    <key name="show-seke-prs100" type="b">
+      <default>false</default>
+      <summary>Show Parsian 100</summary>
+    </key>
+
+    <key name="show-seke-prs200" type="b">
+      <default>false</default>
+      <summary>Show Parsian 200</summary>
+    </key>
+
+    <key name="show-seke-prs400" type="b">
+      <default>false</default>
+      <summary>Show Parsian 400</summary>
+    </key>
+
+    <key name="show-seke-prs500" type="b">
+      <default>false</default>
+      <summary>Show Parsian 500</summary>
+    </key>
+
+    <key name="show-seke-prs700" type="b">
+      <default>false</default>
+      <summary>Show Parsian 700</summary>
+    </key>
+
+
+    <!-- Currency -->
     <key name="show-usd" type="b">
       <default>true</default>
       <summary>Show USD</summary>
@@ -11,19 +86,48 @@
       <summary>Show EUR</summary>
     </key>
 
-    <key name="show-gold18k" type="b">
-      <default>true</default>
-      <summary>Show 18K Gold</summary>
+    <key name="show-gbp" type="b">
+      <default>false</default>
+      <summary>Show GBP</summary>
     </key>
 
+    <key name="show-aed" type="b">
+      <default>false</default>
+      <summary>Show AED</summary>
+    </key>
+
+    <key name="show-try" type="b">
+      <default>false</default>
+      <summary>Show TRY</summary>
+    </key>
+
+
+    <!-- Crypto -->
     <key name="show-btc" type="b">
       <default>false</default>
       <summary>Show Bitcoin</summary>
     </key>
 
+    <key name="show-eth" type="b">
+      <default>false</default>
+      <summary>Show Ethereum</summary>
+    </key>
+
+    <key name="show-usdt" type="b">
+      <default>false</default>
+      <summary>Show Tether</summary>
+    </key>
+
+    <key name="show-xrp" type="b">
+      <default>false</default>
+      <summary>Show XRP</summary>
+    </key>
+
+
+    <!-- General -->
     <key name="language" type="s">
       <default>'en'</default>
-      <summary>Display language (en or fa)</summary>
+      <summary>Display language</summary>
     </key>
 
   </schema>

@@ -12,6 +12,134 @@ import Pango from "gi://Pango";
 const WORKER_URL = "https://baha-worker.the6fallenangels.workers.dev/latest";
 const REFRESH_SECONDS = 180;
 
+const SYMBOL_API_MAP = {
+  "gold-ounce": "OUNCE",
+  "gold-mazaneh": "MAZANEH",
+  "seke-bahar": "SEKE_BAHAR",
+  "seke-emami": "SEKE_EMAMI",
+  "seke-nim": "SEKE_NIM",
+  "seke-rob": "SEKE_ROB",
+  "seke-1g": "SEKE_1G",
+};
+const SYMBOL_GROUPS = [
+  {
+    id: "gold",
+    labels: {
+      en: "Gold",
+      fa: "طلا",
+    },
+    items: [
+      {
+        key: "show-gold18k",
+        labels: { en: "18K Gold", fa: "طلا ۱۸ عیار" },
+      },
+      {
+        key: "show-gold24k",
+        labels: { en: "24K Gold", fa: "طلا ۲۴ عیار" },
+      },
+      {
+        key: "show-gold-ounce",
+        labels: { en: "Gold Ounce", fa: "اونس طلا" },
+      },
+      {
+        key: "show-gold-mazaneh",
+        labels: { en: "Mazaneh", fa: "مثقال" },
+      },
+      {
+        key: "show-seke-bahar",
+        labels: { en: "Bahar Coin", fa: "سکه بهار آزادی" },
+      },
+      {
+        key: "show-seke-emami",
+        labels: { en: "Emami Coin", fa: "سکه امامی" },
+      },
+      {
+        key: "show-seke-nim",
+        labels: { en: "Half Coin", fa: "نیم سکه" },
+      },
+      {
+        key: "show-seke-rob",
+        labels: { en: "Quarter Coin", fa: "ربع سکه" },
+      },
+      {
+        key: "show-seke-1g",
+        labels: { en: "1g Coin", fa: "سکه ۱ گرمی" },
+      },
+    ],
+  },
+
+  {
+    id: "parsian",
+    labels: {
+      en: "Parsian Coins",
+      fa: "سکه پارسیان",
+    },
+    items: [
+      {
+        key: "show-seke-prs100",
+        labels: { en: "Parsian 100 sot", fa: "پارسیان ۱۰۰ سوت" },
+      },
+      {
+        key: "show-seke-prs200",
+        labels: { en: "Parsian 200 sot", fa: "پارسیان ۲۰۰ سوت" },
+      },
+      {
+        key: "show-seke-prs400",
+        labels: { en: "Parsian 400 sot", fa: "پارسیان ۴۰۰ سوت" },
+      },
+      {
+        key: "show-seke-prs500",
+        labels: { en: "Parsian 500 sot", fa: "پارسیان ۵۰۰ سوت" },
+      },
+      {
+        key: "show-seke-prs700",
+        labels: { en: "Parsian 700 sot", fa: "پارسیان ۷۰۰ سوت" },
+      },
+    ],
+  },
+
+  {
+    id: "currency",
+    labels: {
+      en: "Currency",
+      fa: "ارز",
+    },
+    items: [
+      ["show-usd", { en: "USD", fa: "دلار" }],
+      ["show-eur", { en: "EUR", fa: "یورو" }],
+      ["show-gbp", { en: "GBP", fa: "پوند" }],
+      ["show-aed", { en: "AED", fa: "درهم" }],
+      ["show-try", { en: "TRY", fa: "لیر" }],
+    ],
+  },
+
+  {
+    id: "crypto",
+    labels: {
+      en: "Crypto",
+      fa: "ارز دیجیتال",
+    },
+    items: [
+      {
+        key: "show-btc",
+        labels: { en: "Bitcoin", fa: "بیت‌کوین" },
+      },
+      {
+        key: "show-eth",
+        labels: { en: "Ethereum", fa: "اتریوم" },
+      },
+      {
+        key: "show-usdt",
+        labels: { en: "USDT", fa: "تتر" },
+      },
+      {
+        key: "show-xrp",
+        labels: { en: "XRP", fa: "ریپل" },
+      },
+    ],
+  },
+];
+
 const BahaIndicator = GObject.registerClass(
   class BahaIndicator extends PanelMenu.Button {
     _init(settings) {
@@ -57,36 +185,57 @@ const BahaIndicator = GObject.registerClass(
       this._marqueeTimeoutId = null;
 
       this._settingsChangedId = this._settings.connect("changed", () => {
+        this._updateMenuLanguage();
         if (this._lastData) this._render(this._lastData);
       });
     }
 
     _buildMenu() {
-      const symbolSwitches = [
-        ["show-usd", "USD | دلار"],
-        ["show-eur", "EUR | یورو"],
-        ["show-gold18k", "Gold 18K | طلا 18 عیار"],
-        ["show-btc", "BTC | بیتکوین"],
-      ];
-      for (const [key, label] of symbolSwitches) {
-        const item = new PopupMenu.PopupSwitchMenuItem(
-          label,
-          this._settings.get_boolean(key),
-        );
-        item.connect("toggled", (_item, state) => {
-          this._settings.set_boolean(key, state);
+      const lang = this._getLang();
+      this._symbolGroups = [];
+      this._symbolItems = [];
+
+      for (const group of SYMBOL_GROUPS) {
+        const submenu = new PopupMenu.PopupSubMenuMenuItem(group.labels[lang]);
+        this._symbolGroups.push({
+          menu: submenu,
+          group,
         });
-        item.activate = () => {
-          item.toggle();
-        };
-        this.menu.addMenuItem(item);
+
+        for (const item of group.items) {
+          const key = Array.isArray(item) ? item[0] : item.key;
+          const labels = Array.isArray(item) ? item[1] : item.labels;
+
+          const switchItem = new PopupMenu.PopupSwitchMenuItem(
+            labels[lang],
+            this._settings.get_boolean(key),
+          );
+
+          this._symbolItems.push({
+            item: switchItem,
+            labels,
+          });
+
+          switchItem.connect("toggled", (_, state) => {
+            this._settings.set_boolean(key, state);
+          });
+
+          switchItem.activate = () => {
+            switchItem.toggle();
+          };
+          submenu.menu.addMenuItem(switchItem);
+        }
+
+        this.menu.addMenuItem(submenu);
       }
 
-      this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
-
-      const langSubMenuText =
-        this._settings.get_string("language") === "en" ? "Language" : "زبان";
+      const langSubMenuText = lang === "en" ? "Language" : "زبان";
       this._langSubMenu = new PopupMenu.PopupSubMenuMenuItem(langSubMenuText);
+      this._langSubMenuLabels = {
+        en: "Language",
+        fa: "زبان",
+      };
+
       this._langItems = {};
 
       const languages = [
@@ -98,7 +247,6 @@ const BahaIndicator = GObject.registerClass(
         const langItem = new PopupMenu.PopupMenuItem(label);
         langItem.activate = () => {
           this._settings.set_string("language", code);
-          this._updateLanguageOrnaments();
         };
         this._langSubMenu.menu.addMenuItem(langItem);
         this._langItems[code] = langItem;
@@ -110,17 +258,31 @@ const BahaIndicator = GObject.registerClass(
       this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
 
       const updatedText =
-        this._settings.get_string("language") === "en"
-          ? "Last updated: --"
-          : "آخرین بروزرسانی";
+        lang === "en" ? "Last updated: --" : "آخرین بروزرسانی";
       this._lastUpdateItem = new PopupMenu.PopupMenuItem(updatedText, {
         reactive: false,
       });
       this.menu.addMenuItem(this._lastUpdateItem);
     }
 
+    _getLang() {
+      return this._settings.get_string("language");
+    }
+
+    _updateMenuLanguage() {
+      const lang = this._getLang();
+      for (const { menu, group } of this._symbolGroups) {
+        menu.label.text = group.labels[lang];
+      }
+      for (const { item, labels } of this._symbolItems) {
+        item.label.text = labels[lang];
+      }
+      this._langSubMenu.label.text = this._langSubMenuLabels[lang];
+      this._updateLanguageOrnaments();
+    }
+
     _updateLanguageOrnaments() {
-      const current = this._settings.get_string("language");
+      const current = this._getLang();
       for (const [code, item] of Object.entries(this._langItems)) {
         item.setOrnament(
           code === current ? PopupMenu.Ornament.DOT : PopupMenu.Ornament.NONE,
@@ -133,7 +295,7 @@ const BahaIndicator = GObject.registerClass(
         this._lastData = json;
       }
       if (!this._lastData) {
-        this._label.set_text("Baha: --");
+        this._label.set_text(this._getLang === "en" ? "Baha" : "بها");
         return;
       }
       this._render(this._lastData);
@@ -141,46 +303,63 @@ const BahaIndicator = GObject.registerClass(
 
     _render(json) {
       const data = json?.data;
-      const lang = this._settings.get_string("language");
+      const lang = this._getLang();
       const parts = [];
 
       if (!data) {
-        this._baseText = lang === "en" ? "Baha: --" : "بها: --";
+        this._baseText = lang === "en" ? "Baha" : "بها";
         this._applyText();
         return;
       }
 
-      if (
-        this._settings.get_boolean("show-usd") &&
-        data.currency?.USD?.current
-      ) {
-        const v = Number(data.currency.USD.current).toLocaleString();
-        parts.push(lang === "fa" ? `دلار ${v}` : `USD ${v}`);
-      }
-      if (
-        this._settings.get_boolean("show-eur") &&
-        data.currency?.EUR?.current
-      ) {
-        const v = Number(data.currency.EUR.current).toLocaleString();
-        parts.push(lang === "fa" ? `یورو ${v}` : `EUR ${v}`);
-      }
-      if (
-        this._settings.get_boolean("show-gold18k") &&
-        data.gold?.GOLD18K?.current
-      ) {
-        const v = Number(data.gold.GOLD18K.current).toLocaleString();
-        parts.push(lang === "fa" ? `طلا ${v}` : `Gold ${v}`);
-      }
-      if (this._settings.get_boolean("show-btc") && data.crypto?.BTC?.current) {
-        const v = Number(data.crypto.BTC.current).toLocaleString();
-        parts.push(lang === "fa" ? `بیت‌کوین ${v}` : `BTC ${v}`);
+      for (const group of SYMBOL_GROUPS) {
+        let dataGroup;
+
+        switch (group.id) {
+          case "gold":
+          case "parsian":
+            dataGroup = data.gold;
+            break;
+
+          case "currency":
+            dataGroup = data.currency;
+            break;
+
+          case "crypto":
+            dataGroup = data.crypto;
+            break;
+        }
+
+        if (!dataGroup) continue;
+
+        for (const item of group.items) {
+          const key = Array.isArray(item) ? item[0] : item.key;
+
+          if (!this._settings.get_boolean(key)) continue;
+
+          const rawSymbol = key.replace("show-", "");
+
+          const symbol =
+            SYMBOL_API_MAP[rawSymbol] ??
+            rawSymbol.replaceAll("-", "_").toUpperCase();
+
+          const value = dataGroup[symbol]?.current;
+
+          if (!value) continue;
+
+          const formatted = Number(value).toLocaleString();
+
+          const labels = Array.isArray(item) ? item[1] : item.labels;
+
+          parts.push(`${labels[lang]} ${formatted}`);
+        }
       }
 
       this._baseText = parts.length
         ? parts.join(" | ")
         : lang === "en"
-          ? "Baha: --"
-          : "بها: --";
+          ? "Baha"
+          : "بها";
 
       if (data.date) {
         const prefix = lang === "fa" ? "آخرین بروزرسانی" : "Last updated";
