@@ -7,6 +7,7 @@ import { Extension } from "resource:///org/gnome/shell/extensions/extension.js";
 import * as Main from "resource:///org/gnome/shell/ui/main.js";
 import * as PanelMenu from "resource:///org/gnome/shell/ui/panelMenu.js";
 import * as PopupMenu from "resource:///org/gnome/shell/ui/popupMenu.js";
+import Pango from "gi://Pango";
 
 const WORKER_URL = "https://baha-worker.the6fallenangels.workers.dev/latest";
 const REFRESH_SECONDS = 180;
@@ -19,27 +20,31 @@ const BahaIndicator = GObject.registerClass(
 
       this._viewport = new St.Bin({
         clip_to_allocation: true,
-        x_align: Clutter.ActorAlign.FILL,
         style_class: "baha-viewport",
       });
 
-      this._label = new St.Label({
-        text: "...",
-        y_align: Clutter.ActorAlign.CENTER,
-        x_expand: false,
+      this._track = new St.Widget({
+        layout_manager: new Clutter.FixedLayout(),
       });
 
-      this._viewport.set_child(this._label);
-      this.add_child(this._viewport);
+      this._labelA = new St.Label({ y_align: Clutter.ActorAlign.CENTER });
+      this._labelB = new St.Label({ y_align: Clutter.ActorAlign.CENTER });
 
-      this._viewport.set_width(-1);
-      this._label.set_width(-1);
+      for (const label of [this._labelA, this._labelB]) {
+        label.clutter_text.set_line_wrap(false);
+        label.clutter_text.set_ellipsize(Pango.EllipsizeMode.NONE);
+        this._track.add_child(label);
+      }
+
+      this._viewport.set_child(this._track);
+      this.add_child(this._viewport);
 
       this._buildMenu();
 
       this._lastData = null;
       this._session = new Soup.Session();
-      this._scrollTimeoutId = null;
+      this._marqueeGeneration = 0;
+      this._marqueeTimeoutId = null;
 
       this._settingsChangedId = this._settings.connect("changed", () => {
         if (this._lastData) this._render(this._lastData);
@@ -130,7 +135,8 @@ const BahaIndicator = GObject.registerClass(
       const parts = [];
 
       if (!data) {
-        this._label.set_text(lang === "en" ? "Baha: --" : "بها: --");
+        this._baseText = lang === "en" ? "Baha: --" : "بها: --";
+        this._applyText();
         return;
       }
 
@@ -141,7 +147,6 @@ const BahaIndicator = GObject.registerClass(
         const v = Number(data.currency.USD.current).toLocaleString();
         parts.push(lang === "fa" ? `دلار ${v}` : `USD ${v}`);
       }
-
       if (
         this._settings.get_boolean("show-eur") &&
         data.currency?.EUR?.current
@@ -149,7 +154,6 @@ const BahaIndicator = GObject.registerClass(
         const v = Number(data.currency.EUR.current).toLocaleString();
         parts.push(lang === "fa" ? `یورو ${v}` : `EUR ${v}`);
       }
-
       if (
         this._settings.get_boolean("show-gold18k") &&
         data.gold?.GOLD18K?.current
@@ -157,54 +161,89 @@ const BahaIndicator = GObject.registerClass(
         const v = Number(data.gold.GOLD18K.current).toLocaleString();
         parts.push(lang === "fa" ? `طلا ${v}` : `Gold ${v}`);
       }
-
       if (this._settings.get_boolean("show-btc") && data.crypto?.BTC?.current) {
         const v = Number(data.crypto.BTC.current).toLocaleString();
         parts.push(lang === "fa" ? `بیت‌کوین ${v}` : `BTC ${v}`);
       }
 
-      this._label.set_text(
-        parts.length
-          ? parts.join(" | ")
-          : lang === "en"
-            ? "Baha: --"
-            : "بها: --",
-      );
+      this._baseText = parts.length
+        ? parts.join(" | ")
+        : lang === "en"
+          ? "Baha: --"
+          : "بها: --";
 
       if (data.date) {
         const prefix = lang === "fa" ? "آخرین بروزرسانی" : "Last updated";
         this._lastUpdateItem.label.set_text(`${prefix}: ${data.date}`);
       }
 
+      this._applyText();
+    }
+
+    _applyText() {
+      this._marqueeGeneration++;
+
+      if (this._marqueeTimeoutId) {
+        GLib.source_remove(this._marqueeTimeoutId);
+        this._marqueeTimeoutId = null;
+      }
+
+      this._labelA.set_text(this._baseText);
+      this._labelB.set_text(this._baseText);
+      this._labelB.hide();
+      this._track.set_position(0, 0);
+
       GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
-        this._restartMarquee();
+        const viewportWidth = this._viewport.get_width();
+
+        const [, textWidth] = this._labelA.get_preferred_width(-1);
+
+        if (textWidth <= viewportWidth) {
+          this._labelA.set_position(0, 0);
+          return GLib.SOURCE_REMOVE;
+        }
+
+        const GAP = 40;
+
+        this._labelA.set_position(0, 0);
+        this._labelB.set_position(textWidth + GAP, 0);
+        this._labelB.show();
+
+        this._startMarqueeLoop(textWidth + GAP, this._marqueeGeneration);
+
         return GLib.SOURCE_REMOVE;
       });
     }
 
-    _restartMarquee() {
-      this._label.remove_all_transitions();
-      this._label.set_translation(0, 0, 0);
-
-      const [, labelWidth] = this._label.get_preferred_width(-1);
-      const viewportWidth = this._viewport.get_width();
-
-      const overflow = labelWidth - viewportWidth;
-      if (overflow <= 0) return;
-
+    _startMarqueeLoop(loopWidth, myGeneration) {
+      const TICK_MS = 30;
       const PIXELS_PER_SECOND = 40;
-      const durationMs = (overflow / PIXELS_PER_SECOND) * 1000;
+      const stepPx = PIXELS_PER_SECOND * (TICK_MS / 1000);
 
-      this._label.ease({
-        translation_x: -overflow,
-        duration: durationMs,
-        mode: Clutter.AnimationMode.LINEAR,
-        repeatCount: -1,
-      });
+      let x = 0;
+
+      this._marqueeTimeoutId = GLib.timeout_add(
+        GLib.PRIORITY_DEFAULT,
+        TICK_MS,
+        () => {
+          if (myGeneration !== this._marqueeGeneration) {
+            return GLib.SOURCE_REMOVE;
+          }
+
+          x = (x - stepPx) % loopWidth;
+          this._track.set_position(x, 0);
+
+          return GLib.SOURCE_CONTINUE;
+        },
+      );
     }
 
     destroy() {
-      this._label.remove_all_transitions();
+      this._marqueeGeneration++;
+      if (this._marqueeTimeoutId) {
+        GLib.source_remove(this._marqueeTimeoutId);
+        this._marqueeTimeoutId = null;
+      }
       if (this._settingsChangedId) {
         this._settings.disconnect(this._settingsChangedId);
         this._settingsChangedId = null;

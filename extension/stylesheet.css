@@ -1,5 +1,6 @@
 .baha-viewport {
-    width: 220px;
+    max-width: 220px;
+    min-width: 50px;
     padding-left: 5px;
     padding-right: 5px;
 }
