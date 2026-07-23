@@ -1,0 +1,8 @@
+{
+  "uuid": "gnome-baha@the6fallenangel.github.io",
+  "name": "Baha",
+  "description": "Live gold, currency and crypto rates in your top bar.",
+  "shell-version": ["45", "46", "47", "48"],
+  "url": "https://github.com/the6fallenangel/gnome-baha",
+  "version": 1
+}
