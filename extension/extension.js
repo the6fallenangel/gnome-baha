@@ -25,14 +25,24 @@ const BahaIndicator = GObject.registerClass(
 
       this._track = new St.Widget({
         layout_manager: new Clutter.FixedLayout(),
+        y_expand: true,
+        y_align: Clutter.ActorAlign.CENTER,
       });
 
-      this._labelA = new St.Label({ y_align: Clutter.ActorAlign.CENTER });
-      this._labelB = new St.Label({ y_align: Clutter.ActorAlign.CENTER });
+      this._labelA = new St.Label({
+        y_align: Clutter.ActorAlign.CENTER,
+        y_expand: true,
+      });
+
+      this._labelB = new St.Label({
+        y_align: Clutter.ActorAlign.CENTER,
+        y_expand: true,
+      });
 
       for (const label of [this._labelA, this._labelB]) {
         label.clutter_text.set_line_wrap(false);
         label.clutter_text.set_ellipsize(Pango.EllipsizeMode.NONE);
+        label.clutter_text.set_y_align(Clutter.ActorAlign.CENTER);
         this._track.add_child(label);
       }
 
@@ -217,7 +227,7 @@ const BahaIndicator = GObject.registerClass(
 
     _startMarqueeLoop(loopWidth, myGeneration) {
       const TICK_MS = 30;
-      const PIXELS_PER_SECOND = 40;
+      const PIXELS_PER_SECOND = 20;
       const stepPx = PIXELS_PER_SECOND * (TICK_MS / 1000);
 
       let x = 0;
