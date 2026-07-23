@@ -13,7 +13,18 @@
 	"upload_source_maps": true,
 	"compatibility_flags": [
 		"nodejs_compat"
-	]
+	],
+	"kv_namespaces": [
+		{
+			"binding": "BAHA_RATES",
+			"id": "28caa1c30cab4ab0a10173f693fbdc5e"
+		}
+	],
+	"triggers": {
+		"crons": [
+			"*/2 * * * *"
+		]
+	}
 	/**
 	 * Smart Placement
 	 * https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement

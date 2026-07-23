@@ -1,3 +1,5 @@
+const KV_KEY = 'latest_rates';
+
 export default {
 	async fetch(request, env, ctx) {
 		const url = new URL(request.url);
@@ -8,22 +10,41 @@ export default {
 
 		return new Response('Baha worker is running.', { status: 200 });
 	},
+
+	async scheduled(event, env, ctx) {
+		await refreshRates(env);
+	},
 };
 
 async function handleLatest(env) {
-	try {
-		const res = await fetch(env.API);
+	const cached = await env.BAHA_RATES.get(KV_KEY);
 
-		if (!res.ok) {
-			return Response.json({ error: 'Upstream api error', status: res.status }, { status: 502 });
-		}
+	if (cached) {
+		return new Response(cached, {
+			headers: {
+				'Content-Type': 'application/json',
+				'Cache-Control': 'no-store',
+			},
+		});
+	}
+
+	const data = await refreshRates(env);
+	return Response.json(data ?? { error: 'No data available yet' }, { status: data ? 200 : 503 });
+}
+
+async function refreshRates(env) {
+	try {
+		const res = await fetch(env.API_URL);
+		if (!res.ok) return null;
 
 		const data = await res.json();
 
-		return Response.json(data, {
-			headers: { 'Cache-Control': 'no-store' },
+		await env.BAHA_RATES.put(KV_KEY, JSON.stringify(data), {
+			expirationTtl: 600,
 		});
+
+		return data;
 	} catch (err) {
-		return Response.json({ error: 'Failed to fetch upstream data' }, { status: 500 });
+		return null;
 	}
 }
