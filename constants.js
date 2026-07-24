@@ -12,11 +12,11 @@ export const SYMBOL_API_MAP = {
 };
 
 export const MARQUEE_GAP_STYLES = {
-  space: "         ",
-  dot: "    •   ",
-  dash: "    ———   ",
-  star: "    ★   ",
-  diamond: "    ◆   ",
+  space: "             ",
+  dot: "      •     ",
+  dash: "      ———     ",
+  star: "      ★     ",
+  diamond: "      ◆     ",
 };
 
 export const SYMBOL_GROUPS = [
