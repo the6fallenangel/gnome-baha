@@ -178,5 +178,10 @@
       <default>true</default>
       <summary>Show last updated time in the popup menu</summary>
     </key>
+
+    <key name="cached-data" type="s">
+      <default>''</default>
+      <summary>Save api data for caching system</summary>
+    </key>
   </schema>
 </schemalist>

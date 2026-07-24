@@ -236,7 +236,7 @@ const BahaIndicator = GObject.registerClass(
     }
 
     _getLang() {
-      return this._settings.get_string("language");
+      return this._getSetting("language");
     }
 
     _updateMenuLanguage() {
@@ -341,7 +341,7 @@ const BahaIndicator = GObject.registerClass(
         }
       }
 
-      const separator = this._settings.get_string("separator") || "|";
+      const separator = this._getSetting("separator") || "|";
       this._baseText = parts.length
         ? parts.join(` ${separator} `)
         : lang === "en"
@@ -357,6 +357,10 @@ const BahaIndicator = GObject.registerClass(
       this._applyText();
     }
 
+    _getSetting(setting) {
+      return this._settings.get_string(setting);
+    }
+
     _applyText() {
       this._marqueeGeneration++;
 
@@ -365,7 +369,7 @@ const BahaIndicator = GObject.registerClass(
         this._marqueeTimeoutId = null;
       }
 
-      const gapStyle = this._settings.get_string("marquee-gap-style");
+      const gapStyle = this._getSetting("marquee-gap-style");
       const GAP_TEXT = MARQUEE_GAP_STYLES[gapStyle] ?? MARQUEE_GAP_STYLES.dot;
 
       const fullUnit = this._baseText + GAP_TEXT;
@@ -404,8 +408,7 @@ const BahaIndicator = GObject.registerClass(
       const TICK_MS = 30;
       const SPEED_MAP = { slow: 10, medium: 25, fast: 45 };
       const PIXELS_PER_SECOND =
-        SPEED_MAP[this._settings.get_string("marquee-speed")] ??
-        SPEED_MAP.medium;
+        SPEED_MAP[this._getSetting("marquee-speed")] ?? SPEED_MAP.medium;
       const stepPx = PIXELS_PER_SECOND * (TICK_MS / 1000);
 
       let x = 0;
@@ -447,6 +450,11 @@ export default class BahaExtension extends Extension {
     this._settings = this.getSettings();
     this._indicator = new BahaIndicator(this._settings, this);
     Main.panel.addToStatusArea("baha-indicator", this._indicator);
+
+    const cached = this._getCache();
+    if (cached) {
+      this._indicator.setData(cached, false);
+    }
 
     this._fetchAndUpdate();
     this._scheduleRefresh();
@@ -494,6 +502,15 @@ export default class BahaExtension extends Extension {
     this._settings = null;
   }
 
+  _getCache() {
+    const cached = this._settings.get_string("cached-data");
+    try {
+      return JSON.parse(cached);
+    } catch (e) {
+      return null;
+    }
+  }
+
   _fetchAndUpdate() {
     const message = Soup.Message.new("GET", WORKER_URL);
 
@@ -506,9 +523,15 @@ export default class BahaExtension extends Extension {
           const bytes = session.send_and_read_finish(result);
           const text = new TextDecoder().decode(bytes.get_data());
           const json = JSON.parse(text);
+          this._settings.set_string("cached-data", text);
           this._indicator.setData(json, false);
         } catch (e) {
-          this._indicator.setData(null, true);
+          const cached = this._getCache();
+          if (cached) {
+            this._indicator.setData(cached, false);
+          } else {
+            this._indicator.setData(null, true);
+          }
           logError(e, "Baha fetch failed, showing cached data if any");
         }
       },
