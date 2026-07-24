@@ -2,56 +2,13 @@ import Adw from "gi://Adw";
 import Gio from "gi://Gio";
 import Gtk from "gi://Gtk";
 import { ExtensionPreferences } from "resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js";
-
-const STRINGS = {
-  en: {
-    pageTitle: "Baha",
-    generalGroup: "General",
-    intervalTitle: "Refresh interval",
-    intervalSubtitle: "How often to fetch new rates (minimum 3 minutes)",
-    gapTitle: "Marquee gap style",
-    gapSubtitle: "Style shown between repeated text when scrolling",
-    speedTitle: "Marquee speed",
-    separatorTitle: "Separator",
-    separatorSubtitle: "Character shown between symbols in the panel",
-    trendTitle: "Show trend arrow in panel",
-    trendSubtitle:
-      "Display ▲/▼ next to values in the top bar, not just in the menu",
-
-    lastUpdatedTitle: "Show last updated time",
-    lastUpdatedSubtitle:
-      "Display when the data was last refreshed, in the popup menu",
-    aboutGroup: "About",
-    aboutRow: "Symbols and language",
-    aboutSubtitle: "Configure these from the panel popup menu directly.",
-    sourceRow: "Source code on github",
-  },
-  fa: {
-    pageTitle: "بها",
-    generalGroup: "تنظیمات عمومی",
-    intervalTitle: "فاصله بروزرسانی",
-    intervalSubtitle: "هر چند وقت یک‌بار نرخ‌ها بروزرسانی شوند (حداقل ۳ دقیقه)",
-    gapTitle: "طرح فاصله بین تکرار متن",
-    gapSubtitle: "طرحی که بین تکرار متن هنگام اسکرول نمایش داده می‌شود.",
-    speedTitle: "سرعت اسکرول",
-    separatorTitle: "جداکننده",
-    separatorSubtitle: "کاراکتری که بین نمادها در نوار بالا نمایش داده می‌شود",
-    trendTitle: "نمایش فلش تغییرات در نوار بالا",
-    trendSubtitle: "نمایش ▲/▼ کنار مقادیر در تاپ‌بار، نه فقط در منو",
-    lastUpdatedTitle: "نمایش زمان آخرین بروزرسانی",
-    lastUpdatedSubtitle: "نمایش زمان آخرین بروزرسانی داده‌ها در منوی پاپ‌آپ",
-    aboutGroup: "درباره",
-    aboutRow: "نمادها و زبان",
-    aboutSubtitle: "مستقیماً از منوی پاپ‌آپ پنل تنظیم کنید.",
-    sourceRow: "کد منبع در گیتهاب",
-  },
-};
+import { PREFS_STRINGS } from "./constants.js";
 
 export default class BahaPreferences extends ExtensionPreferences {
   fillPreferencesWindow(window) {
     const settings = this.getSettings();
     const lang = settings.get_string("language") === "fa" ? "fa" : "en";
-    const t = STRINGS[lang];
+    const t = PREFS_STRINGS[lang];
 
     if (lang === "fa") {
       Gtk.Widget.set_default_direction(Gtk.TextDirection.RTL);
@@ -63,6 +20,8 @@ export default class BahaPreferences extends ExtensionPreferences {
     const generalGroup = new Adw.PreferencesGroup({ title: t.generalGroup });
     page.add(generalGroup);
 
+    generalGroup.add(this._buildLanguageSelector(settings, lang));
+
     generalGroup.add(
       this._buildIntCombo(
         settings,
@@ -70,11 +29,12 @@ export default class BahaPreferences extends ExtensionPreferences {
         t.intervalTitle,
         t.intervalSubtitle,
         [
-          { value: 3, label: lang === "fa" ? "۳ دقیقه" : "3 minutes" },
-          { value: 5, label: lang === "fa" ? "۵ دقیقه" : "5 minutes" },
-          { value: 10, label: lang === "fa" ? "۱۰ دقیقه" : "10 minutes" },
-          { value: 15, label: lang === "fa" ? "۱۵ دقیقه" : "15 minutes" },
-          { value: 30, label: lang === "fa" ? "۳۰ دقیقه" : "30 minutes" },
+          { value: 3, label: t.minutes3 },
+          { value: 5, label: t.minutes5 },
+          { value: 10, label: t.minutes10 },
+          { value: 15, label: t.minutes15 },
+          { value: 30, label: t.minutes30 },
+          { value: 60, label: t.hour1 },
         ],
       ),
     );
@@ -86,20 +46,20 @@ export default class BahaPreferences extends ExtensionPreferences {
         t.gapTitle,
         t.gapSubtitle,
         [
-          { value: "space", label: lang === "fa" ? "خالی" : "Blank space" },
-          { value: "dot", label: lang === "fa" ? "نقطه" : "Dot" },
-          { value: "dash", label: lang === "fa" ? "خط" : "Dash" },
-          { value: "star", label: lang === "fa" ? "ستاره" : "Star" },
-          { value: "diamond", label: lang === "fa" ? "الماس" : "Diamond" },
+          { value: "space", label: t.blankSpace },
+          { value: "dot", label: t.dot },
+          { value: "dash", label: t.dash },
+          { value: "star", label: t.star },
+          { value: "diamond", label: t.diamond },
         ],
       ),
     );
 
     generalGroup.add(
       this._buildStringCombo(settings, "marquee-speed", t.speedTitle, null, [
-        { value: "slow", label: lang === "fa" ? "آهسته" : "Slow" },
-        { value: "medium", label: lang === "fa" ? "متوسط" : "Medium" },
-        { value: "fast", label: lang === "fa" ? "سریع" : "Fast" },
+        { value: "slow", label: t.slow },
+        { value: "medium", label: t.medium },
+        { value: "fast", label: t.fast },
       ]),
     );
 
@@ -110,10 +70,12 @@ export default class BahaPreferences extends ExtensionPreferences {
         t.separatorTitle,
         t.separatorSubtitle,
         [
-          { value: "|", label: "|" },
-          { value: "•", label: "•" },
-          { value: "-", label: "-" },
-          { value: "/", label: "/" },
+          { value: "|", label: t.pipe },
+          { value: "•", label: t.dot },
+          { value: "·", label: t.middleDot },
+          { value: "-", label: t.dashSymbol },
+          { value: "/", label: t.slash },
+          { value: " ", label: t.space },
         ],
       ),
     );
@@ -157,6 +119,31 @@ export default class BahaPreferences extends ExtensionPreferences {
       );
     });
     aboutGroup.add(sourceRow);
+  }
+
+  _buildLanguageSelector(settings, currentLang) {
+    const model = Gtk.StringList.new(["English", "فارسی"]);
+    const row = new Adw.ComboRow({
+      title: PREFS_STRINGS[currentLang].languageTitle,
+      subtitle: PREFS_STRINGS[currentLang].languageSubtitle,
+      model,
+    });
+
+    row.selected = currentLang === "fa" ? 1 : 0;
+
+    row.connect("notify::selected", () => {
+      const newLang = row.selected === 1 ? "fa" : "en";
+      settings.set_string("language", newLang);
+
+      const window = row.get_ancestor(Gtk.Window);
+      const toast = new Adw.Toast({
+        title: PREFS_STRINGS[newLang].languageChanged,
+        timeout: 3,
+      });
+      window.add_toast(toast);
+    });
+
+    return row;
   }
 
   _buildIntCombo(settings, key, title, subtitle, choices) {
