@@ -56,6 +56,7 @@ const BahaIndicator = GObject.registerClass(
       this.add_child(this._viewport);
 
       this._buildMenu();
+      this.menu.actor.add_style_class_name("baha-menu");
 
       this._lastData = null;
       this._session = new Soup.Session();
