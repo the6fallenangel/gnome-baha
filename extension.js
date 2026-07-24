@@ -1,444 +1,9 @@
-import St from "gi://St";
-import Gio from "gi://Gio";
-import Clutter from "gi://Clutter";
-import GLib from "gi://GLib";
-import GObject from "gi://GObject";
-import Soup from "gi://Soup?version=3.0";
 import { Extension } from "resource:///org/gnome/shell/extensions/extension.js";
 import * as Main from "resource:///org/gnome/shell/ui/main.js";
-import * as PanelMenu from "resource:///org/gnome/shell/ui/panelMenu.js";
-import * as PopupMenu from "resource:///org/gnome/shell/ui/popupMenu.js";
-import Pango from "gi://Pango";
-import {
-  WORKER_URL,
-  SYMBOL_API_MAP,
-  MARQUEE_GAP_STYLES,
-  SYMBOL_GROUPS,
-  GROUP_MAP,
-} from "./constants.js";
-
-const BahaIndicator = GObject.registerClass(
-  class BahaIndicator extends PanelMenu.Button {
-    _init(settings, extension) {
-      super._init(0.0, "Baha Indicator");
-      this._settings = settings;
-      this._extension = extension;
-
-      this._viewport = new St.Bin({
-        clip_to_allocation: true,
-        style_class: "baha-viewport",
-      });
-
-      this._track = new St.Widget({
-        layout_manager: new Clutter.FixedLayout(),
-        y_expand: true,
-        y_align: Clutter.ActorAlign.CENTER,
-      });
-
-      this._labelA = new St.Label({
-        y_align: Clutter.ActorAlign.CENTER,
-        y_expand: true,
-      });
-
-      this._labelB = new St.Label({
-        y_align: Clutter.ActorAlign.CENTER,
-        y_expand: true,
-      });
-
-      for (const label of [this._labelA, this._labelB]) {
-        label.clutter_text.set_line_wrap(false);
-        label.clutter_text.set_ellipsize(Pango.EllipsizeMode.NONE);
-        label.clutter_text.set_y_align(Clutter.ActorAlign.CENTER);
-        this._track.add_child(label);
-      }
-
-      this._viewport.set_child(this._track);
-      this.add_child(this._viewport);
-
-      this._buildMenu();
-      this.menu.actor.add_style_class_name("baha-menu");
-
-      this._lastData = null;
-      this._session = new Soup.Session();
-      this._marqueeGeneration = 0;
-      this._marqueeTimeoutId = null;
-
-      this._settingsChangedId = this._settings.connect("changed", () => {
-        this._updateMenuLanguage();
-        this._lastUpdateItem.visible = this._getSetting(
-          "show-last-updated",
-          "bool",
-        );
-        if (this._lastData) this._render(this._lastData);
-      });
-    }
-
-    _buildMenu() {
-      const lang = this._getLang();
-      this._symbolGroups = [];
-      this._symbolItems = [];
-      this._symbolWidgetsByKey = new Map();
-
-      for (const group of SYMBOL_GROUPS) {
-        const submenu = new PopupMenu.PopupSubMenuMenuItem(group.labels[lang]);
-        this._symbolGroups.push({
-          menu: submenu,
-          group,
-        });
-
-        for (const item of group.items) {
-          const key = Array.isArray(item) ? item[0] : item.key;
-          const labels = Array.isArray(item) ? item[1] : item.labels;
-
-          const checkItem = new PopupMenu.PopupMenuItem(labels[lang]);
-          checkItem.label.x_expand = true;
-          checkItem.setOrnament(
-            this._getSetting(key, "bool")
-              ? PopupMenu.Ornament.CHECK
-              : PopupMenu.Ornament.NONE,
-          );
-
-          const valueLabel = new St.Label({
-            text: "",
-            y_align: Clutter.ActorAlign.CENTER,
-            style_class: "baha-item-value",
-          });
-          const arrowLabel = new St.Label({
-            text: "",
-            y_align: Clutter.ActorAlign.CENTER,
-            style_class: "baha-item-arrow",
-          });
-          checkItem.add_child(valueLabel);
-          checkItem.add_child(arrowLabel);
-
-          checkItem.activate = () => {
-            const newState = !this._getSetting(key, "bool");
-            this._settings.set_boolean(key, newState);
-            checkItem.setOrnament(
-              newState ? PopupMenu.Ornament.CHECK : PopupMenu.Ornament.NONE,
-            );
-          };
-
-          this._symbolItems.push({
-            item: checkItem,
-            labels,
-            key,
-            valueLabel,
-          });
-
-          this._symbolWidgetsByKey.set(key, { valueLabel, arrowLabel });
-
-          submenu.menu.addMenuItem(checkItem);
-        }
-
-        this.menu.addMenuItem(submenu);
-      }
-
-      this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
-
-      const langSubMenuText = lang === "en" ? "Language" : "زبان";
-      this._langSubMenu = new PopupMenu.PopupSubMenuMenuItem(langSubMenuText);
-      this._langSubMenuLabels = {
-        en: "Language",
-        fa: "زبان",
-      };
-
-      this._langItems = {};
-
-      const languages = [
-        ["en", "English"],
-        ["fa", "فارسی"],
-      ];
-
-      for (const [code, label] of languages) {
-        const langItem = new PopupMenu.PopupMenuItem(label);
-        langItem.activate = () => {
-          this._settings.set_string("language", code);
-        };
-        this._langSubMenu.menu.addMenuItem(langItem);
-        this._langItems[code] = langItem;
-      }
-
-      this.menu.addMenuItem(this._langSubMenu);
-      this._updateLanguageOrnaments();
-
-      this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
-
-      const updatedText =
-        lang === "en" ? "Last updated: --" : "آخرین بروزرسانی";
-      this._lastUpdateItem = new PopupMenu.PopupMenuItem(updatedText, {
-        reactive: false,
-      });
-      this._lastUpdateItem.visible = this._getSetting(
-        "show-last-updated",
-        "bool",
-      );
-      this.menu.addMenuItem(this._lastUpdateItem);
-
-      const footerRow = new PopupMenu.PopupBaseMenuItem({
-        reactive: false,
-        can_focus: false,
-      });
-
-      const leftSpacer = new St.Widget({ x_expand: true });
-      const midSpacer = new St.Widget({ x_expand: true });
-      const rightSpacer = new St.Widget({ x_expand: true });
-
-      const settingsButton = new St.Button({
-        style_class: "baha-footer-button",
-        child: new St.Icon({
-          icon_name: "preferences-system-symbolic",
-          icon_size: 16,
-        }),
-      });
-      settingsButton.connect("clicked", () => {
-        this._extension.openPreferences();
-        this.menu.close();
-      });
-
-      const githubButton = new St.Button({
-        style_class: "baha-footer-button",
-        child: new St.Icon({
-          icon_name: "web-browser-symbolic",
-          icon_size: 16,
-        }),
-      });
-      githubButton.connect("clicked", () => {
-        Gio.AppInfo.launch_default_for_uri(
-          "https://github.com/the6fallenangel/gnome-baha",
-          null,
-        );
-        this.menu.close();
-      });
-
-      footerRow.add_child(leftSpacer);
-      footerRow.add_child(settingsButton);
-      footerRow.add_child(midSpacer);
-      footerRow.add_child(githubButton);
-      footerRow.add_child(rightSpacer);
-      this.menu.addMenuItem(footerRow);
-    }
-
-    _formatTrend(currentStr, minObj, maxObj) {
-      const current = Number(currentStr);
-      const min = Number(minObj?.["1hour"]);
-      const max = Number(maxObj?.["1hour"]);
-
-      if (
-        !Number.isFinite(current) ||
-        !Number.isFinite(min) ||
-        !Number.isFinite(max)
-      ) {
-        return { text: "--", style: "" };
-      }
-
-      if (current >= max) {
-        return { text: "▲", style: "color: #2ecc71; font-weight: bold;" };
-      }
-      if (current <= min) {
-        return { text: "▼", style: "color: #e74c3c; font-weight: bold;" };
-      }
-      return { text: "--", style: "" };
-    }
-
-    _getLang() {
-      return this._getSetting("language");
-    }
-
-    _updateMenuLanguage() {
-      const lang = this._getLang();
-      for (const { menu, group } of this._symbolGroups) {
-        menu.label.text = group.labels[lang];
-      }
-      for (const { item, labels } of this._symbolItems) {
-        item.label.text = labels[lang];
-      }
-      this._langSubMenu.label.text = this._langSubMenuLabels[lang];
-      this._updateLanguageOrnaments();
-    }
-
-    _updateLanguageOrnaments() {
-      const current = this._getLang();
-      for (const [code, item] of Object.entries(this._langItems)) {
-        item.setOrnament(
-          code === current ? PopupMenu.Ornament.DOT : PopupMenu.Ornament.NONE,
-        );
-      }
-    }
-
-    setData(json, isError) {
-      if (!isError && json) {
-        this._lastData = json;
-      }
-      if (!this._lastData) {
-        this._baseText = this._getLang() === "en" ? "Baha" : "بها";
-        this._applyText();
-        return;
-      }
-      this._render(this._lastData);
-    }
-
-    _render(json) {
-      const data = json?.data;
-      const lang = this._getLang();
-      const parts = [];
-
-      if (!data) {
-        this._baseText = lang === "en" ? "Baha" : "بها";
-        this._applyText();
-        return;
-      }
-
-      for (const group of SYMBOL_GROUPS) {
-        const dataKey = GROUP_MAP[group.id];
-        const dataGroup = data[dataKey];
-        if (!dataGroup) continue;
-
-        for (const item of group.items) {
-          const key = Array.isArray(item) ? item[0] : item.key;
-
-          const rawSymbol = key.replace("show-", "");
-
-          const symbol =
-            SYMBOL_API_MAP[rawSymbol] ??
-            rawSymbol.replaceAll("-", "_").toUpperCase();
-
-          const value = dataGroup[symbol]?.current;
-          if (!value) continue;
-
-          const labels = Array.isArray(item) ? item[1] : item.labels;
-
-          const widgets = this._symbolWidgetsByKey.get(key);
-
-          let trend = { text: "", style: "" };
-
-          const formattedLocal = Number(value).toLocaleString();
-          if (widgets) {
-            widgets.valueLabel.set_text(formattedLocal);
-            const symbolData = dataGroup[symbol];
-            trend = this._formatTrend(value, symbolData?.min, symbolData?.max);
-            widgets.arrowLabel.set_text(trend.text);
-            widgets.arrowLabel.set_style(trend.style);
-          }
-
-          if (!this._getSetting(key, "bool")) continue;
-
-          const showTrend = this._getSetting("show-trend-in-panel", "bool");
-          const trendSuffix =
-            showTrend && trend.text !== "-" ? ` ${trend.text}` : "";
-          parts.push(`${trendSuffix} ${labels[lang]} ${formattedLocal}`);
-        }
-      }
-
-      const separator = this._getSetting("separator") || "|";
-      this._baseText = parts.length
-        ? parts.join(`  ${separator} `)
-        : lang === "en"
-          ? "Baha"
-          : "بها";
-
-      if (data.date) {
-        const prefix = lang === "fa" ? "آخرین بروزرسانی" : "Last updated";
-        const date = lang === "fa" ? `\u200E${data.date}\u200E` : data.date;
-        this._lastUpdateItem.label.set_text(`${prefix}: ${date}`);
-      }
-
-      this._applyText();
-    }
-
-    _getSetting(key, type = "string") {
-      if (type === "bool") {
-        return this._settings.get_boolean(key);
-      }
-      if (type === "int") {
-        return this._settings.get_int(key);
-      }
-      return this._settings.get_string(key);
-    }
-
-    _applyText() {
-      this._marqueeGeneration++;
-
-      if (this._marqueeTimeoutId) {
-        GLib.source_remove(this._marqueeTimeoutId);
-        this._marqueeTimeoutId = null;
-      }
-
-      const gapStyle = this._getSetting("marquee-gap-style");
-      const GAP_TEXT = MARQUEE_GAP_STYLES[gapStyle] ?? MARQUEE_GAP_STYLES.dot;
-
-      const fullUnit = this._baseText + GAP_TEXT;
-
-      this._labelA.set_text(fullUnit);
-      this._labelB.set_text(fullUnit);
-      this._labelB.hide();
-      this._track.set_position(0, 0);
-
-      GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
-        const viewportWidth = this._viewport.get_width();
-
-        const probe = new St.Label({ text: this._baseText });
-        const [, plainWidth] = probe.get_preferred_width(-1);
-        probe.destroy();
-
-        if (plainWidth <= viewportWidth) {
-          this._labelA.set_text(this._baseText);
-          this._labelA.set_position(0, 0);
-          return GLib.SOURCE_REMOVE;
-        }
-
-        const [, unitWidth] = this._labelA.get_preferred_width(-1);
-
-        this._labelA.set_position(0, 0);
-        this._labelB.set_position(unitWidth, 0);
-        this._labelB.show();
-
-        this._startMarqueeLoop(unitWidth, this._marqueeGeneration);
-
-        return GLib.SOURCE_REMOVE;
-      });
-    }
-
-    _startMarqueeLoop(loopWidth, myGeneration) {
-      const TICK_MS = 40;
-      const SPEED_MAP = { slow: 10, medium: 25, fast: 45 };
-      const PIXELS_PER_SECOND =
-        SPEED_MAP[this._getSetting("marquee-speed")] ?? SPEED_MAP.medium;
-      const stepPx = PIXELS_PER_SECOND * (TICK_MS / 1000);
-
-      let x = 0;
-
-      this._marqueeTimeoutId = GLib.timeout_add(
-        GLib.PRIORITY_DEFAULT,
-        TICK_MS,
-        () => {
-          if (myGeneration !== this._marqueeGeneration) {
-            return GLib.SOURCE_REMOVE;
-          }
-
-          x = (x - stepPx) % loopWidth;
-          this._track.set_position(x, 0);
-
-          return GLib.SOURCE_CONTINUE;
-        },
-      );
-    }
-
-    destroy() {
-      this._marqueeGeneration++;
-      if (this._marqueeTimeoutId) {
-        GLib.source_remove(this._marqueeTimeoutId);
-        this._marqueeTimeoutId = null;
-      }
-      if (this._settingsChangedId) {
-        this._settings.disconnect(this._settingsChangedId);
-        this._settingsChangedId = null;
-      }
-      this._session = null;
-      super.destroy();
-    }
-  },
-);
+import Soup from "gi://Soup?version=3.0";
+import GLib from "gi://GLib";
+import BahaIndicator from "./indicator.js";
+import { WORKER_URL } from "./constants.js";
 
 export default class BahaExtension extends Extension {
   enable() {
@@ -458,6 +23,20 @@ export default class BahaExtension extends Extension {
       "changed::refresh-interval-minutes",
       () => this._scheduleRefresh(),
     );
+  }
+
+  disable() {
+    if (this._timeoutId) {
+      GLib.source_remove(this._timeoutId);
+      this._timeoutId = null;
+    }
+    if (this._intervalChangedId) {
+      this._settings.disconnect(this._intervalChangedId);
+      this._intervalChangedId = null;
+    }
+    this._indicator?.destroy();
+    this._indicator = null;
+    this._settings = null;
   }
 
   _scheduleRefresh() {
@@ -483,20 +62,6 @@ export default class BahaExtension extends Extension {
     );
   }
 
-  disable() {
-    if (this._timeoutId) {
-      GLib.source_remove(this._timeoutId);
-      this._timeoutId = null;
-    }
-    if (this._intervalChangedId) {
-      this._settings.disconnect(this._intervalChangedId);
-      this._intervalChangedId = null;
-    }
-    this._indicator?.destroy();
-    this._indicator = null;
-    this._settings = null;
-  }
-
   _getCache() {
     const cached = this._settings.get_string("cached-data");
     try {
@@ -518,6 +83,7 @@ export default class BahaExtension extends Extension {
           const bytes = session.send_and_read_finish(result);
           const text = new TextDecoder().decode(bytes.get_data());
           const json = JSON.parse(text);
+
           this._settings.set_string("cached-data", text);
           this._indicator.setData(json, false);
         } catch (e) {
@@ -527,7 +93,6 @@ export default class BahaExtension extends Extension {
           } else {
             this._indicator.setData(null, true);
           }
-          logError(e, "Baha fetch failed, showing cached data if any");
         }
       },
     );

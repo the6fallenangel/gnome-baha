@@ -8,17 +8,13 @@
     min-width: 280px;
 }
 
-.baha-footer-button {
-    padding: 6px;
-}
-
 .baha-item-value {
     padding-left: 8px;
     padding-right: 4px;
+    font-weight: bold;
 }
 
 .baha-item-arrow {
-    padding-right: 4px;
     min-width: 12px;
 }
 
