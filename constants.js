@@ -15,7 +15,7 @@ export const MARQUEE_GAP_STYLES = {
 
 export const LANGUAGES = [
   ["en", "English"],
-  ["fa", "فارسی"],
+  ["fa", "پارسی"],
 ];
 
 export const SPEED_MAP = Object.freeze({ slow: 10, medium: 25, fast: 55 });

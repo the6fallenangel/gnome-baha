@@ -122,7 +122,7 @@ export default class BahaPreferences extends ExtensionPreferences {
   }
 
   _buildLanguageSelector(settings, currentLang) {
-    const model = Gtk.StringList.new(["English", "فارسی"]);
+    const model = Gtk.StringList.new(["English", "پارسی"]);
     const row = new Adw.ComboRow({
       title: PREFS_STRINGS[currentLang].languageTitle,
       subtitle: PREFS_STRINGS[currentLang].languageSubtitle,
