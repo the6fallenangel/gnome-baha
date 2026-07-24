@@ -137,3 +137,10 @@ export const SYMBOL_GROUPS = [
     ],
   },
 ];
+
+export const GROUP_MAP = {
+  gold: "gold",
+  parsian: "gold",
+  currency: "currency",
+  crypto: "crypto",
+};

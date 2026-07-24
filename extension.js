@@ -14,6 +14,7 @@ import {
   SYMBOL_API_MAP,
   MARQUEE_GAP_STYLES,
   SYMBOL_GROUPS,
+  GROUP_MAP,
 } from "./constants.js";
 
 const BahaIndicator = GObject.registerClass(
@@ -63,8 +64,10 @@ const BahaIndicator = GObject.registerClass(
 
       this._settingsChangedId = this._settings.connect("changed", () => {
         this._updateMenuLanguage();
-        this._lastUpdateItem.visible =
-          this._settings.get_boolean("show-last-updated");
+        this._lastUpdateItem.visible = this._getSetting(
+          "show-last-updated",
+          "bool",
+        );
         if (this._lastData) this._render(this._lastData);
       });
     }
@@ -89,7 +92,7 @@ const BahaIndicator = GObject.registerClass(
           const checkItem = new PopupMenu.PopupMenuItem(labels[lang]);
           checkItem.label.x_expand = true;
           checkItem.setOrnament(
-            this._settings.get_boolean(key)
+            this._getSetting(key, "bool")
               ? PopupMenu.Ornament.CHECK
               : PopupMenu.Ornament.NONE,
           );
@@ -108,7 +111,7 @@ const BahaIndicator = GObject.registerClass(
           checkItem.add_child(arrowLabel);
 
           checkItem.activate = () => {
-            const newState = !this._settings.get_boolean(key);
+            const newState = !this._getSetting(key, "bool");
             this._settings.set_boolean(key, newState);
             checkItem.setOrnament(
               newState ? PopupMenu.Ornament.CHECK : PopupMenu.Ornament.NONE,
@@ -165,8 +168,10 @@ const BahaIndicator = GObject.registerClass(
       this._lastUpdateItem = new PopupMenu.PopupMenuItem(updatedText, {
         reactive: false,
       });
-      this._lastUpdateItem.visible =
-        this._settings.get_boolean("show-last-updated");
+      this._lastUpdateItem.visible = this._getSetting(
+        "show-last-updated",
+        "bool",
+      );
       this.menu.addMenuItem(this._lastUpdateItem);
 
       const footerRow = new PopupMenu.PopupBaseMenuItem({
@@ -284,23 +289,8 @@ const BahaIndicator = GObject.registerClass(
       }
 
       for (const group of SYMBOL_GROUPS) {
-        let dataGroup;
-
-        switch (group.id) {
-          case "gold":
-          case "parsian":
-            dataGroup = data.gold;
-            break;
-
-          case "currency":
-            dataGroup = data.currency;
-            break;
-
-          case "crypto":
-            dataGroup = data.crypto;
-            break;
-        }
-
+        const dataKey = GROUP_MAP[group.id];
+        const dataGroup = data[dataKey];
         if (!dataGroup) continue;
 
         for (const item of group.items) {
@@ -315,35 +305,33 @@ const BahaIndicator = GObject.registerClass(
           const value = dataGroup[symbol]?.current;
           if (!value) continue;
 
-          const numericValue = Number(value);
           const labels = Array.isArray(item) ? item[1] : item.labels;
 
           const widgets = this._symbolWidgetsByKey.get(key);
 
           let trend = { text: "", style: "" };
 
+          const formattedLocal = Number(value).toLocaleString();
           if (widgets) {
-            widgets.valueLabel.set_text(Number(value).toLocaleString());
+            widgets.valueLabel.set_text(formattedLocal);
             const symbolData = dataGroup[symbol];
             trend = this._formatTrend(value, symbolData?.min, symbolData?.max);
             widgets.arrowLabel.set_text(trend.text);
             widgets.arrowLabel.set_style(trend.style);
           }
 
-          const formatted = Number(value).toLocaleString();
+          if (!this._getSetting(key, "bool")) continue;
 
-          if (!this._settings.get_boolean(key)) continue;
-
-          const showTrend = this._settings.get_boolean("show-trend-in-panel");
+          const showTrend = this._getSetting("show-trend-in-panel", "bool");
           const trendSuffix =
             showTrend && trend.text !== "-" ? ` ${trend.text}` : "";
-          parts.push(`${trendSuffix} ${labels[lang]} ${formatted}`);
+          parts.push(`${trendSuffix} ${labels[lang]} ${formattedLocal}`);
         }
       }
 
       const separator = this._getSetting("separator") || "|";
       this._baseText = parts.length
-        ? parts.join(` ${separator} `)
+        ? parts.join(`  ${separator} `)
         : lang === "en"
           ? "Baha"
           : "بها";
@@ -357,8 +345,14 @@ const BahaIndicator = GObject.registerClass(
       this._applyText();
     }
 
-    _getSetting(setting) {
-      return this._settings.get_string(setting);
+    _getSetting(key, type = "string") {
+      if (type === "bool") {
+        return this._settings.get_boolean(key);
+      }
+      if (type === "int") {
+        return this._settings.get_int(key);
+      }
+      return this._settings.get_string(key);
     }
 
     _applyText() {
@@ -405,7 +399,7 @@ const BahaIndicator = GObject.registerClass(
     }
 
     _startMarqueeLoop(loopWidth, myGeneration) {
-      const TICK_MS = 30;
+      const TICK_MS = 40;
       const SPEED_MAP = { slow: 10, medium: 25, fast: 45 };
       const PIXELS_PER_SECOND =
         SPEED_MAP[this._getSetting("marquee-speed")] ?? SPEED_MAP.medium;
