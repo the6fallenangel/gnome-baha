@@ -1,6 +1,17 @@
 .baha-viewport {
     max-width: 220px;
     min-width: 50px;
-    padding-left: 5px;
-    padding-right: 5px;
+    padding: 0 5px;
+}
+.baha-footer-button {
+    padding: 6px;
+}
+.baha-item-value {
+    padding-left: 8px;
+    padding-right: 4px;
+}
+
+.baha-item-arrow {
+    padding-right: 4px;
+    min-width: 12px;
 }

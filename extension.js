@@ -1,4 +1,5 @@
 import St from "gi://St";
+import Gio from "gi://Gio";
 import Clutter from "gi://Clutter";
 import GLib from "gi://GLib";
 import GObject from "gi://GObject";
@@ -142,9 +143,10 @@ const SYMBOL_GROUPS = [
 
 const BahaIndicator = GObject.registerClass(
   class BahaIndicator extends PanelMenu.Button {
-    _init(settings) {
+    _init(settings, extension) {
       super._init(0.0, "Baha Indicator");
       this._settings = settings;
+      this._extension = extension;
 
       this._viewport = new St.Bin({
         clip_to_allocation: true,
@@ -194,6 +196,7 @@ const BahaIndicator = GObject.registerClass(
       const lang = this._getLang();
       this._symbolGroups = [];
       this._symbolItems = [];
+      this._symbolWidgetsByKey = new Map();
 
       for (const group of SYMBOL_GROUPS) {
         const submenu = new PopupMenu.PopupSubMenuMenuItem(group.labels[lang]);
@@ -210,11 +213,29 @@ const BahaIndicator = GObject.registerClass(
             labels[lang],
             this._settings.get_boolean(key),
           );
+          switchItem.label.x_expand = true;
+          const valueLabel = new St.Label({
+            text: "",
+            y_align: Clutter.ActorAlign.CENTER,
+            style_class: "baha-item-value",
+          });
+          const arrowLabel = new St.Label({
+            text: "",
+            y_align: Clutter.ActorAlign.CENTER,
+            style_class: "baha-item-arrow",
+          });
+          const insertIndex = switchItem.get_n_children() - 1;
+          switchItem.insert_child_at_index(arrowLabel, insertIndex);
+          switchItem.insert_child_at_index(valueLabel, insertIndex);
 
           this._symbolItems.push({
             item: switchItem,
             labels,
+            key,
+            valueLabel,
+            arrowLabel,
           });
+          this._symbolWidgetsByKey.set(key, { valueLabel, arrowLabel });
 
           switchItem.connect("toggled", (_, state) => {
             this._settings.set_boolean(key, state);
@@ -263,6 +284,67 @@ const BahaIndicator = GObject.registerClass(
         reactive: false,
       });
       this.menu.addMenuItem(this._lastUpdateItem);
+
+      const footerRow = new PopupMenu.PopupBaseMenuItem({
+        reactive: false,
+        can_focus: false,
+      });
+
+      const spacer = new St.Widget({ x_expand: true });
+
+      const settingsButton = new St.Button({
+        style_class: "baha-footer-button",
+        child: new St.Icon({
+          icon_name: "preferences-system-symbolic",
+          icon_size: 16,
+        }),
+      });
+      settingsButton.connect("clicked", () => {
+        this._extension.openPreferences();
+        this.menu.close();
+      });
+
+      const githubButton = new St.Button({
+        style_class: "baha-footer-button",
+        child: new St.Icon({
+          icon_name: "web-browser-symbolic",
+          icon_size: 16,
+        }),
+      });
+      githubButton.connect("clicked", () => {
+        Gio.AppInfo.launch_default_for_uri(
+          "https://github.com/the6fallenangel/gnome-baha",
+          null,
+        );
+        this.menu.close();
+      });
+
+      footerRow.add_child(spacer);
+      footerRow.add_child(settingsButton);
+      footerRow.add_child(githubButton);
+      this.menu.addMenuItem(footerRow);
+    }
+
+    _formatTrend(currentStr, minObj, maxObj) {
+      const current = Number(currentStr);
+      const min = Number(minObj?.["1hour"]);
+      const max = Number(maxObj?.["1hour"]);
+
+      if (
+        !Number.isFinite(current) ||
+        !Number.isFinite(min) ||
+        !Number.isFinite(max)
+      ) {
+        return { text: "", style: "" };
+      }
+
+      if (current >= max) {
+        return { text: "▲", style: "color: #2ecc71; font-weight: bold;" };
+      }
+      if (current <= min) {
+        return { text: "▼", style: "color: #e74c3c; font-weight: bold;" };
+      }
+      return { text: "", style: "" };
     }
 
     _getLang() {
@@ -347,6 +429,18 @@ const BahaIndicator = GObject.registerClass(
           const value = dataGroup[symbol]?.current;
 
           if (!value) continue;
+          const widgets = this._symbolWidgetsByKey.get(key);
+          if (widgets) {
+            widgets.valueLabel.set_text(Number(value).toLocaleString());
+            const symbolData = dataGroup[symbol];
+            const trend = this._formatTrend(
+              value,
+              symbolData?.min,
+              symbolData?.max,
+            );
+            widgets.arrowLabel.set_text(trend.text);
+            widgets.arrowLabel.set_style(trend.style);
+          }
 
           const formatted = Number(value).toLocaleString();
 
@@ -448,7 +542,7 @@ const BahaIndicator = GObject.registerClass(
 export default class BahaExtension extends Extension {
   enable() {
     this._settings = this.getSettings();
-    this._indicator = new BahaIndicator(this._settings);
+    this._indicator = new BahaIndicator(this._settings, this);
     Main.panel.addToStatusArea("baha-indicator", this._indicator);
 
     this._fetchAndUpdate();
