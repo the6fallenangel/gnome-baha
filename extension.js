@@ -295,7 +295,8 @@ const BahaIndicator = GObject.registerClass(
         this._lastData = json;
       }
       if (!this._lastData) {
-        this._label.set_text(this._getLang === "en" ? "Baha" : "بها");
+        this._baseText = this._getLang() === "en" ? "Baha" : "بها";
+        this._applyText();
         return;
       }
       this._render(this._lastData);
