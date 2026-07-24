@@ -10,6 +10,9 @@ import {
   GROUP_MAP,
   MARQUEE_GAP_STYLES,
   SPEED_MAP,
+  MAX_VIEWPORT_WIDTH,
+  MIN_VIEWPORT_WIDTH,
+  TICK_MS,
 } from "./constants.js";
 import { formatTrend, getSymbolFromKey, getItemKeyAndLabels } from "./utils.js";
 import { MenuBuilder } from "./menuBuilder.js";
@@ -36,6 +39,7 @@ const BahaIndicator = GObject.registerClass(
       this._session = new Soup.Session();
       this._marqueeGeneration = 0;
       this._marqueeTimeoutId = null;
+      this._applyTextDebounceId = null;
 
       this._settingsChangedId = this._settings.connect("changed", () => {
         this._menuBuilder.updateLanguage();
@@ -154,56 +158,72 @@ const BahaIndicator = GObject.registerClass(
         lastUpdateItem.label.set_text(`${prefix}: ${date}`);
       }
 
-      this._applyText();
+      this._scheduleApplyText();
+    }
+
+    _scheduleApplyText() {
+      if (this._applyTextDebounceId) {
+        GLib.source_remove(this._applyTextDebounceId);
+        this._applyTextDebounceId = null;
+      }
+      this._applyTextDebounceId = GLib.timeout_add(
+        GLib.PRIORITY_DEFAULT,
+        50,
+        () => {
+          this._applyTextDebounceId = null;
+          this._applyText();
+          return GLib.SOURCE_REMOVE;
+        },
+      );
     }
 
     _applyText() {
       this._marqueeGeneration++;
+      const myGeneration = this._marqueeGeneration;
 
       if (this._marqueeTimeoutId) {
         GLib.source_remove(this._marqueeTimeoutId);
         this._marqueeTimeoutId = null;
       }
 
+      this._track.set_position(0, 0);
+      this._labelB.hide();
+
+      const probe = new St.Label({ text: this._baseText });
+      const [, plainWidth] = probe.get_preferred_width(-1);
+      probe.destroy();
+
+      if (plainWidth <= MAX_VIEWPORT_WIDTH) {
+        const targetWidth = Math.max(MIN_VIEWPORT_WIDTH, plainWidth);
+        this._viewport.set_width(targetWidth);
+
+        this._labelA.set_text(this._baseText);
+        this._labelA.set_position(0, 0);
+        return;
+      }
+
+      this._viewport.set_width(MAX_VIEWPORT_WIDTH);
+
       const gapStyle = this._settings.get_string("marquee-gap-style");
       const GAP_TEXT = MARQUEE_GAP_STYLES[gapStyle] ?? MARQUEE_GAP_STYLES.dot;
-
       const fullUnit = this._baseText + GAP_TEXT;
 
       this._labelA.set_text(fullUnit);
       this._labelB.set_text(fullUnit);
-      this._labelB.hide();
-      this._track.set_position(0, 0);
 
-      GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
-        const viewportWidth = this._viewport.get_width();
+      const [, unitWidth] = this._labelA.get_preferred_width(-1);
 
-        const probe = new St.Label({ text: this._baseText });
-        const [, plainWidth] = probe.get_preferred_width(-1);
-        probe.destroy();
+      this._labelA.set_position(0, 0);
+      this._labelB.set_position(unitWidth, 0);
+      this._labelB.show();
 
-        if (plainWidth <= viewportWidth) {
-          this._labelA.set_text(this._baseText);
-          this._labelA.set_position(0, 0);
-          return GLib.SOURCE_REMOVE;
-        }
-
-        const [, unitWidth] = this._labelA.get_preferred_width(-1);
-
-        this._labelA.set_position(0, 0);
-        this._labelB.set_position(unitWidth, 0);
-        this._labelB.show();
-
-        this._startMarqueeLoop(unitWidth, this._marqueeGeneration);
-
-        return GLib.SOURCE_REMOVE;
-      });
+      this._startMarqueeLoop(unitWidth, myGeneration);
     }
 
     _startMarqueeLoop(loopWidth, myGeneration) {
-      const TICK_MS = 40;
       const PIXELS_PER_SECOND =
-        SPEED_MAP[this._settings.get_int("marquee-speed")] ?? SPEED_MAP.medium;
+        SPEED_MAP[this._settings.get_string("marquee-speed")] ??
+        SPEED_MAP.medium;
       const stepPx = PIXELS_PER_SECOND * (TICK_MS / 1000);
 
       let x = 0;
@@ -229,6 +249,10 @@ const BahaIndicator = GObject.registerClass(
       if (this._marqueeTimeoutId) {
         GLib.source_remove(this._marqueeTimeoutId);
         this._marqueeTimeoutId = null;
+      }
+      if (this._applyTextDebounceId) {
+        GLib.source_remove(this._applyTextDebounceId);
+        this._applyTextDebounceId = null;
       }
       if (this._settingsChangedId) {
         this._settings.disconnect(this._settingsChangedId);

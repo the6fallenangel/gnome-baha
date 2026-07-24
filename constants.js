@@ -1,12 +1,16 @@
 export const WORKER_URL =
   "https://baha-worker.the6fallenangels.workers.dev/latest";
 
+export const MIN_VIEWPORT_WIDTH = 50;
+export const MAX_VIEWPORT_WIDTH = 220;
+export const TICK_MS = 30;
+
 export const MARQUEE_GAP_STYLES = {
   space: "             ",
-  dot: "      •     ",
-  dash: "      ———     ",
-  star: "      ★     ",
-  diamond: "      ◆     ",
+  dot: "      •    ",
+  dash: "      ———    ",
+  star: "      ★    ",
+  diamond: "      ◆    ",
 };
 
 export const LANGUAGES = [
@@ -14,7 +18,7 @@ export const LANGUAGES = [
   ["fa", "فارسی"],
 ];
 
-export const SPEED_MAP = Object.freeze({ slow: 10, medium: 25, fast: 45 });
+export const SPEED_MAP = Object.freeze({ slow: 10, medium: 25, fast: 55 });
 
 export const SYMBOL_API_MAP = {
   "gold-ounce": "OUNCE",
