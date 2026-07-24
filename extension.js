@@ -338,15 +338,16 @@ const BahaIndicator = GObject.registerClass(
         !Number.isFinite(min) ||
         !Number.isFinite(max)
       ) {
-        return { text: "", style: "" };
+        return { text: "--", style: "" };
       }
+
       if (current >= max) {
         return { text: "▲", style: "color: #2ecc71; font-weight: bold;" };
       }
       if (current <= min) {
         return { text: "▼", style: "color: #e74c3c; font-weight: bold;" };
       }
-      return { text: "", style: "" };
+      return { text: "--", style: "" };
     }
 
     _getLang() {
