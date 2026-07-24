@@ -173,5 +173,10 @@
       <default>false</default>
       <summary>Show the up/down trend arrow in the panel label too</summary>
     </key>
+
+    <key name="show-last-updated" type="b">
+      <default>true</default>
+      <summary>Show last updated time in the popup menu</summary>
+    </key>
   </schema>
 </schemalist>

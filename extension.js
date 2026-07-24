@@ -194,6 +194,8 @@ const BahaIndicator = GObject.registerClass(
 
       this._settingsChangedId = this._settings.connect("changed", () => {
         this._updateMenuLanguage();
+        this._lastUpdateItem.visible =
+          this._settings.get_boolean("show-last-updated");
         if (this._lastData) this._render(this._lastData);
       });
     }
@@ -294,6 +296,8 @@ const BahaIndicator = GObject.registerClass(
       this._lastUpdateItem = new PopupMenu.PopupMenuItem(updatedText, {
         reactive: false,
       });
+      this._lastUpdateItem.visible =
+        this._settings.get_boolean("show-last-updated");
       this.menu.addMenuItem(this._lastUpdateItem);
 
       const footerRow = new PopupMenu.PopupBaseMenuItem({
@@ -301,7 +305,9 @@ const BahaIndicator = GObject.registerClass(
         can_focus: false,
       });
 
-      const spacer = new St.Widget({ x_expand: true });
+      const leftSpacer = new St.Widget({ x_expand: true });
+      const midSpacer = new St.Widget({ x_expand: true });
+      const rightSpacer = new St.Widget({ x_expand: true });
 
       const settingsButton = new St.Button({
         style_class: "baha-footer-button",
@@ -330,9 +336,11 @@ const BahaIndicator = GObject.registerClass(
         this.menu.close();
       });
 
-      footerRow.add_child(spacer);
+      footerRow.add_child(leftSpacer);
       footerRow.add_child(settingsButton);
+      footerRow.add_child(midSpacer);
       footerRow.add_child(githubButton);
+      footerRow.add_child(rightSpacer);
       this.menu.addMenuItem(footerRow);
     }
 

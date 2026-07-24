@@ -17,6 +17,10 @@ const STRINGS = {
     trendTitle: "Show trend arrow in panel",
     trendSubtitle:
       "Display ▲/▼ next to values in the top bar, not just in the menu",
+
+    lastUpdatedTitle: "Show last updated time",
+    lastUpdatedSubtitle:
+      "Display when the data was last refreshed, in the popup menu",
     aboutGroup: "About",
     aboutRow: "Symbols and language",
     aboutSubtitle: "Configure these from the panel popup menu directly.",
@@ -34,6 +38,8 @@ const STRINGS = {
     separatorSubtitle: "کاراکتری که بین نمادها در نوار بالا نمایش داده می‌شود",
     trendTitle: "نمایش فلش تغییرات در نوار بالا",
     trendSubtitle: "نمایش ▲/▼ کنار مقادیر در تاپ‌بار، نه فقط در منو",
+    lastUpdatedTitle: "نمایش زمان آخرین بروزرسانی",
+    lastUpdatedSubtitle: "نمایش زمان آخرین بروزرسانی داده‌ها در منوی پاپ‌آپ",
     aboutGroup: "درباره",
     aboutRow: "نمادها و زبان",
     aboutSubtitle: "مستقیماً از منوی پاپ‌آپ پنل تنظیم کنید.",
@@ -121,6 +127,16 @@ export default class BahaPreferences extends ExtensionPreferences {
       settings.set_boolean("show-trend-in-panel", trendRow.active);
     });
     generalGroup.add(trendRow);
+
+    const lastUpdatedRow = new Adw.SwitchRow({
+      title: t.lastUpdatedTitle,
+      subtitle: t.lastUpdatedSubtitle,
+      active: settings.get_boolean("show-last-updated"),
+    });
+    lastUpdatedRow.connect("notify::active", () => {
+      settings.set_boolean("show-last-updated", lastUpdatedRow.active);
+    });
+    generalGroup.add(lastUpdatedRow);
 
     const aboutGroup = new Adw.PreferencesGroup({ title: t.aboutGroup });
     page.add(aboutGroup);
