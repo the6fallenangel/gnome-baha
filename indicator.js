@@ -74,12 +74,17 @@ const BahaIndicator = GObject.registerClass(
         y_expand: true,
       });
 
+      this._probeLabel = new St.Label({ text: "" });
+      this._probeLabel.hide();
+
       for (const label of [this._labelA, this._labelB]) {
         label.clutter_text.set_line_wrap(false);
         label.clutter_text.set_ellipsize(Pango.EllipsizeMode.NONE);
         label.clutter_text.set_y_align(Clutter.ActorAlign.CENTER);
         this._track.add_child(label);
       }
+
+      this._track.add_child(this._probeLabel);
 
       this._viewport.set_child(this._track);
       this.add_child(this._viewport);
@@ -189,9 +194,8 @@ const BahaIndicator = GObject.registerClass(
       this._track.set_position(0, 0);
       this._labelB.hide();
 
-      const probe = new St.Label({ text: this._baseText });
-      const [, plainWidth] = probe.get_preferred_width(-1);
-      probe.destroy();
+      this._probeLabel.set_text(this._baseText);
+      const [, plainWidth] = this._probeLabel.get_preferred_width(-1);
 
       if (plainWidth <= MAX_VIEWPORT_WIDTH) {
         const targetWidth = Math.max(MIN_VIEWPORT_WIDTH, plainWidth);
