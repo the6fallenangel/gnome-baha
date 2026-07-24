@@ -209,11 +209,14 @@ const BahaIndicator = GObject.registerClass(
           const key = Array.isArray(item) ? item[0] : item.key;
           const labels = Array.isArray(item) ? item[1] : item.labels;
 
-          const switchItem = new PopupMenu.PopupSwitchMenuItem(
-            labels[lang],
-            this._settings.get_boolean(key),
+          const checkItem = new PopupMenu.PopupMenuItem(labels[lang]);
+          checkItem.label.x_expand = true;
+          checkItem.setOrnament(
+            this._settings.get_boolean(key)
+              ? PopupMenu.Ornament.CHECK
+              : PopupMenu.Ornament.NONE,
           );
-          switchItem.label.x_expand = true;
+
           const valueLabel = new St.Label({
             text: "",
             y_align: Clutter.ActorAlign.CENTER,
@@ -224,27 +227,27 @@ const BahaIndicator = GObject.registerClass(
             y_align: Clutter.ActorAlign.CENTER,
             style_class: "baha-item-arrow",
           });
-          const insertIndex = switchItem.get_n_children() - 1;
-          switchItem.insert_child_at_index(arrowLabel, insertIndex);
-          switchItem.insert_child_at_index(valueLabel, insertIndex);
+          checkItem.add_child(valueLabel);
+          checkItem.add_child(arrowLabel);
+
+          checkItem.activate = () => {
+            const newState = !this._settings.get_boolean(key);
+            this._settings.set_boolean(key, newState);
+            checkItem.setOrnament(
+              newState ? PopupMenu.Ornament.CHECK : PopupMenu.Ornament.NONE,
+            );
+          };
 
           this._symbolItems.push({
-            item: switchItem,
+            item: checkItem,
             labels,
             key,
             valueLabel,
-            arrowLabel,
           });
+
           this._symbolWidgetsByKey.set(key, { valueLabel, arrowLabel });
 
-          switchItem.connect("toggled", (_, state) => {
-            this._settings.set_boolean(key, state);
-          });
-
-          switchItem.activate = () => {
-            switchItem.toggle();
-          };
-          submenu.menu.addMenuItem(switchItem);
+          submenu.menu.addMenuItem(checkItem);
         }
 
         this.menu.addMenuItem(submenu);
@@ -337,7 +340,6 @@ const BahaIndicator = GObject.registerClass(
       ) {
         return { text: "", style: "" };
       }
-
       if (current >= max) {
         return { text: "▲", style: "color: #2ecc71; font-weight: bold;" };
       }
@@ -418,8 +420,6 @@ const BahaIndicator = GObject.registerClass(
         for (const item of group.items) {
           const key = Array.isArray(item) ? item[0] : item.key;
 
-          if (!this._settings.get_boolean(key)) continue;
-
           const rawSymbol = key.replace("show-", "");
 
           const symbol =
@@ -427,8 +427,11 @@ const BahaIndicator = GObject.registerClass(
             rawSymbol.replaceAll("-", "_").toUpperCase();
 
           const value = dataGroup[symbol]?.current;
-
           if (!value) continue;
+
+          const numericValue = Number(value);
+          const labels = Array.isArray(item) ? item[1] : item.labels;
+
           const widgets = this._symbolWidgetsByKey.get(key);
           if (widgets) {
             widgets.valueLabel.set_text(Number(value).toLocaleString());
@@ -444,8 +447,9 @@ const BahaIndicator = GObject.registerClass(
 
           const formatted = Number(value).toLocaleString();
 
-          const labels = Array.isArray(item) ? item[1] : item.labels;
+          // const labels = Array.isArray(item) ? item[1] : item.labels;
 
+          if (!this._settings.get_boolean(key)) continue;
           parts.push(`${labels[lang]} ${formatted}`);
         }
       }
