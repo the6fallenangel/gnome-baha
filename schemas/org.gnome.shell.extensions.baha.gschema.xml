@@ -129,6 +129,43 @@
       <default>'en'</default>
       <summary>Display language</summary>
     </key>
+    
+    <key name="refresh-interval-minutes" type="i">
+      <range min="3" max="30"/>
+      <default>3</default>
+      <summary>Refresh interval in minutes</summary>
+    </key>
 
+    <key name="marquee-gap" type="i">
+      <range min="10" max="120"/>
+      <default>40</default>
+      <summary>Gap in pixels between repeated marquee text</summary>
+    </key>
+
+    <key name="marquee-speed" type="s">
+      <choices>
+        <choice value='slow'/>
+        <choice value='medium'/>
+        <choice value='fast'/>
+      </choices>
+      <default>'medium'</default>
+      <summary>Marquee scroll speed</summary>
+    </key>
+
+    <key name="separator" type="s">
+      <choices>
+        <choice value='|'/>
+        <choice value='•'/>
+        <choice value='-'/>
+        <choice value='/'/>
+      </choices>
+      <default>'|'</default>
+      <summary>Separator character between symbols in the panel</summary>
+    </key>
+
+    <key name="show-trend-in-panel" type="b">
+      <default>false</default>
+      <summary>Show the up/down trend arrow in the panel label too</summary>
+    </key>
   </schema>
 </schemalist>

@@ -11,7 +11,6 @@ import * as PopupMenu from "resource:///org/gnome/shell/ui/popupMenu.js";
 import Pango from "gi://Pango";
 
 const WORKER_URL = "https://baha-worker.the6fallenangels.workers.dev/latest";
-const REFRESH_SECONDS = 180;
 
 const SYMBOL_API_MAP = {
   "gold-ounce": "OUNCE",
@@ -253,6 +252,8 @@ const BahaIndicator = GObject.registerClass(
         this.menu.addMenuItem(submenu);
       }
 
+      this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+
       const langSubMenuText = lang === "en" ? "Language" : "زبان";
       this._langSubMenu = new PopupMenu.PopupSubMenuMenuItem(langSubMenuText);
       this._langSubMenuLabels = {
@@ -434,29 +435,31 @@ const BahaIndicator = GObject.registerClass(
           const labels = Array.isArray(item) ? item[1] : item.labels;
 
           const widgets = this._symbolWidgetsByKey.get(key);
+
+          let trend = { text: "", style: "" };
+
           if (widgets) {
             widgets.valueLabel.set_text(Number(value).toLocaleString());
             const symbolData = dataGroup[symbol];
-            const trend = this._formatTrend(
-              value,
-              symbolData?.min,
-              symbolData?.max,
-            );
+            trend = this._formatTrend(value, symbolData?.min, symbolData?.max);
             widgets.arrowLabel.set_text(trend.text);
             widgets.arrowLabel.set_style(trend.style);
           }
 
           const formatted = Number(value).toLocaleString();
 
-          // const labels = Array.isArray(item) ? item[1] : item.labels;
-
           if (!this._settings.get_boolean(key)) continue;
-          parts.push(`${labels[lang]} ${formatted}`);
+
+          const showTrend = this._settings.get_boolean("show-trend-in-panel");
+          const trendSuffix =
+            showTrend && trend.text !== "-" ? ` ${trend.text}` : "";
+          parts.push(`${trendSuffix} ${labels[lang]} ${formatted}`);
         }
       }
 
+      const separator = this._settings.get_string("separator") || "|";
       this._baseText = parts.length
-        ? parts.join(" | ")
+        ? parts.join(` ${separator} `)
         : lang === "en"
           ? "Baha"
           : "بها";
@@ -507,7 +510,10 @@ const BahaIndicator = GObject.registerClass(
 
     _startMarqueeLoop(loopWidth, myGeneration) {
       const TICK_MS = 30;
-      const PIXELS_PER_SECOND = 20;
+      const SPEED_MAP = { slow: 10, medium: 25, fast: 45 };
+      const PIXELS_PER_SECOND =
+        SPEED_MAP[this._settings.get_string("marquee-speed")] ??
+        SPEED_MAP.medium;
       const stepPx = PIXELS_PER_SECOND * (TICK_MS / 1000);
 
       let x = 0;
@@ -551,9 +557,30 @@ export default class BahaExtension extends Extension {
     Main.panel.addToStatusArea("baha-indicator", this._indicator);
 
     this._fetchAndUpdate();
+    this._scheduleRefresh();
+
+    this._intervalChangedId = this._settings.connect(
+      "changed::refresh-interval-minutes",
+      () => this._scheduleRefresh(),
+    );
+  }
+
+  _scheduleRefresh() {
+    if (this._timeoutId) {
+      GLib.source_remove(this._timeoutId);
+      this._timeoutId = null;
+    }
+
+    const minutes = this._settings.get_int("refresh-interval-minutes");
+    const seconds = minutes * 60;
+
+    if (seconds < 180) {
+      seconds = 180;
+    }
+
     this._timeoutId = GLib.timeout_add_seconds(
       GLib.PRIORITY_DEFAULT,
-      REFRESH_SECONDS,
+      seconds,
       () => {
         this._fetchAndUpdate();
         return GLib.SOURCE_CONTINUE;
@@ -565,6 +592,10 @@ export default class BahaExtension extends Extension {
     if (this._timeoutId) {
       GLib.source_remove(this._timeoutId);
       this._timeoutId = null;
+    }
+    if (this._intervalChangedId) {
+      this._settings.disconnect(this._intervalChangedId);
+      this._intervalChangedId = null;
     }
     this._indicator?.destroy();
     this._indicator = null;
