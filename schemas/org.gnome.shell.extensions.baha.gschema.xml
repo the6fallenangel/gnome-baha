@@ -129,17 +129,23 @@
       <default>'en'</default>
       <summary>Display language</summary>
     </key>
-    
+
     <key name="refresh-interval-minutes" type="i">
       <range min="3" max="30"/>
       <default>3</default>
       <summary>Refresh interval in minutes</summary>
     </key>
 
-    <key name="marquee-gap" type="i">
-      <range min="10" max="120"/>
-      <default>40</default>
-      <summary>Gap in pixels between repeated marquee text</summary>
+    <key name="marquee-gap-style" type="s">
+      <choices>
+        <choice value='space'/>
+        <choice value='dot'/>
+        <choice value='dash'/>
+        <choice value='star'/>
+        <choice value='diamond'/>
+      </choices>
+      <default>'dot'</default>
+      <summary>Style of the gap shown between repeated marquee text</summary>
     </key>
 
     <key name="marquee-speed" type="s">

@@ -21,6 +21,13 @@ const SYMBOL_API_MAP = {
   "seke-rob": "SEKE_ROB",
   "seke-1g": "SEKE_1G",
 };
+const MARQUEE_GAP_STYLES = {
+  space: "         ",
+  dot: "    •   ",
+  dash: "    ———   ",
+  star: "    ★   ",
+  diamond: "    ◆   ",
+};
 const SYMBOL_GROUPS = [
   {
     id: "gold",
@@ -481,28 +488,36 @@ const BahaIndicator = GObject.registerClass(
         this._marqueeTimeoutId = null;
       }
 
-      this._labelA.set_text(this._baseText);
-      this._labelB.set_text(this._baseText);
+      const gapStyle = this._settings.get_string("marquee-gap-style");
+      const GAP_TEXT = MARQUEE_GAP_STYLES[gapStyle] ?? MARQUEE_GAP_STYLES.dot;
+
+      const fullUnit = this._baseText + GAP_TEXT;
+
+      this._labelA.set_text(fullUnit);
+      this._labelB.set_text(fullUnit);
       this._labelB.hide();
       this._track.set_position(0, 0);
 
       GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
         const viewportWidth = this._viewport.get_width();
 
-        const [, textWidth] = this._labelA.get_preferred_width(-1);
+        const probe = new St.Label({ text: this._baseText });
+        const [, plainWidth] = probe.get_preferred_width(-1);
+        probe.destroy();
 
-        if (textWidth <= viewportWidth) {
+        if (plainWidth <= viewportWidth) {
+          this._labelA.set_text(this._baseText);
           this._labelA.set_position(0, 0);
           return GLib.SOURCE_REMOVE;
         }
 
-        const GAP = 40;
+        const [, unitWidth] = this._labelA.get_preferred_width(-1);
 
         this._labelA.set_position(0, 0);
-        this._labelB.set_position(textWidth + GAP, 0);
+        this._labelB.set_position(unitWidth, 0);
         this._labelB.show();
 
-        this._startMarqueeLoop(textWidth + GAP, this._marqueeGeneration);
+        this._startMarqueeLoop(unitWidth, this._marqueeGeneration);
 
         return GLib.SOURCE_REMOVE;
       });

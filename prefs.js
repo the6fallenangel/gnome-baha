@@ -9,8 +9,8 @@ const STRINGS = {
     generalGroup: "General",
     intervalTitle: "Refresh interval",
     intervalSubtitle: "How often to fetch new rates (minimum 3 minutes)",
-    gapTitle: "Marquee gap",
-    gapSubtitle: "Space between repeated text when scrolling",
+    gapTitle: "Marquee gap style",
+    gapSubtitle: "Style shown between repeated text when scrolling",
     speedTitle: "Marquee speed",
     separatorTitle: "Separator",
     separatorSubtitle: "Character shown between symbols in the panel",
@@ -27,8 +27,8 @@ const STRINGS = {
     generalGroup: "تنظیمات عمومی",
     intervalTitle: "فاصله بروزرسانی",
     intervalSubtitle: "هر چند وقت یک‌بار نرخ‌ها بروزرسانی شوند (حداقل ۳ دقیقه)",
-    gapTitle: "فاصله بین تکرار متن",
-    gapSubtitle: "فاصله بین تکرار متن هنگام اسکرول",
+    gapTitle: "طرح فاصله بین تکرار متن",
+    gapSubtitle: "طرحی که بین تکرار متن هنگام اسکرول نمایش داده می‌شود.",
     speedTitle: "سرعت اسکرول",
     separatorTitle: "جداکننده",
     separatorSubtitle: "کاراکتری که بین نمادها در نوار بالا نمایش داده می‌شود",
@@ -74,12 +74,19 @@ export default class BahaPreferences extends ExtensionPreferences {
     );
 
     generalGroup.add(
-      this._buildIntCombo(settings, "marquee-gap", t.gapTitle, t.gapSubtitle, [
-        { value: 20, label: "20px" },
-        { value: 40, label: "40px" },
-        { value: 60, label: "60px" },
-        { value: 80, label: "80px" },
-      ]),
+      this._buildStringCombo(
+        settings,
+        "marquee-gap-style",
+        t.gapTitle,
+        t.gapSubtitle,
+        [
+          { value: "space", label: lang === "fa" ? "خالی" : "Blank space" },
+          { value: "dot", label: lang === "fa" ? "نقطه" : "Dot" },
+          { value: "dash", label: lang === "fa" ? "خط" : "Dash" },
+          { value: "star", label: lang === "fa" ? "ستاره" : "Star" },
+          { value: "diamond", label: lang === "fa" ? "الماس" : "Diamond" },
+        ],
+      ),
     );
 
     generalGroup.add(
