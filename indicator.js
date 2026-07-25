@@ -262,7 +262,12 @@ const BahaIndicator = GObject.registerClass(
         this._settings.disconnect(this._settingsChangedId);
         this._settingsChangedId = null;
       }
-      this._session = null;
+      if (this._session) {
+        try {
+          this._session.abort();
+        } catch (e) {}
+        this._session = null;
+      }
       super.destroy();
     }
   },
