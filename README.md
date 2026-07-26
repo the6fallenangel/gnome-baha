@@ -8,7 +8,7 @@
 ### Live gold, currency & crypto rates — right in your GNOME top bar
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
-![GNOME Shell](https://img.shields.io/badge/GNOME%20Shell-45%20--%2048-4A86CF?logo=gnome&logoColor=white)
+![GNOME Shell](https://img.shields.io/badge/GNOME%20Shell-45%20--%2050-4A86CF?logo=gnome&logoColor=white)
 ![Languages](https://img.shields.io/badge/Language-English%20%7C%20Persian-brightgreen)
 
 **No ads. No tracking. No nonsense. Just the numbers you actually care about.**
@@ -104,6 +104,14 @@ Fine-tune Baha to match your taste:
 ## 🤝 Contributing
 
 Contributions, bug reports, and feature suggestions are always welcome! Feel free to open an issue or submit a pull request.
+
+## ❤️ Support Baha
+
+If you enjoy using Baha and want to support its continued development, you can help by making a donation.
+
+Your support helps me keep improving Baha, adding new features, and maintaining the project.
+
+[❤️ Support Baha](https://the6fallenangel.github.io/support/)
 
 ## 📄 License
 
@@ -217,6 +225,14 @@ gnome-extensions enable gnome-baha@the6fallenangel.github.io
 ## 🤝 مشارکت
 
 همراهی شما باعث بهتر شدن **بها** میشه. اگه باگی پیدا کردید، پیشنهادی برای بهبود دارید یا ویژگی جدیدی نیازه اضافه کنید، خوشحال میشم اون رو از طریق یک **Issue** یا **Pull Request** با من به اشتراک بزارید.
+
+## ❤️ حمایت از بها
+
+اگه از **بها** استفاده می‌کنید و دوست دارید به ادامه توسعه آن کمک کنید، میتونید از پروژه حمایت مالی کنید.
+
+حمایت شما کمک میکنه تا ویژگی‌های جدید اضافه شه، پروژه بهبود پیدا کنه و توسعه آن ادامه داشته باشه.
+
+[❤️ حمایت از بها](https://the6fallenangel.github.io/support/)
 
 ## 📄 لایسنس
 

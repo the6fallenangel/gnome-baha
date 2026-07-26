@@ -119,6 +119,19 @@ export default class BahaPreferences extends ExtensionPreferences {
       );
     });
     aboutGroup.add(sourceRow);
+
+    const supportRow = new Adw.ActionRow({
+      title: t.supportRow,
+      subtitle: "the6fallenangel.github.io/support/",
+      activatable: true,
+    });
+    supportRow.connect("activated", () => {
+      Gio.AppInfo.launch_default_for_uri(
+        "https://the6fallenangel.github.io/support/",
+        null,
+      );
+    });
+    aboutGroup.add(supportRow);
   }
 
   _buildLanguageSelector(settings, currentLang) {
