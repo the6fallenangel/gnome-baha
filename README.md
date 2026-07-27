@@ -1,5 +1,5 @@
 <div align="center">
-<img src="./icons/hicolor/256x256/apps/gnome-baha.png" width="100" alt="Baha Logo" />
+<img src="./assets/logo.png" width="100" alt="Baha Logo" />
 
 # 💰 Baha — بها
 
