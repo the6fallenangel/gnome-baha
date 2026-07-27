@@ -61,7 +61,7 @@ No sign-ups. No bloated dashboards. No accounts to manage. Just glance up, and y
 
 The easiest way to install Baha:
 
-1. Visit the [Baha page on extensions.gnome.org](#) _(link coming soon)_
+1. Visit the [Baha page on extensions.gnome.org](https://extensions.gnome.org/extension/10550/baha/)
 2. Flip the switch to install
 3. That's it — Baha now lives in your top bar
 
@@ -156,7 +156,7 @@ Baha is free software, licensed under the [GNU General Public License v3.0](LICE
 
 ساده‌ترین راه برای نصب بها:
 
-1. به [صفحه بها در extensions.gnome.org](#) برو (لینک به‌زودی فعال می‌شود)
+1. به [صفحه بها در extensions.gnome.org](https://extensions.gnome.org/extension/10550/baha/)
 2. دکمه نصب رو بزن
 3. تمام! بها از این به بعد توی نوار بالات هست.
 
