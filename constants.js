@@ -170,3 +170,18 @@ export const PREFS_STRINGS = {
     languageChanged: "زبان تغییر کرد. دوباره باز کنید.",
   },
 };
+
+export const UI_STRINGS = {
+  en: {
+    appName: "Baha",
+    language: "Language",
+    lastUpdatedPrefix: "Last updated",
+    lastUpdatedPlaceholder: "Last updated: --",
+  },
+  fa: {
+    appName: "بها",
+    language: "زبان",
+    lastUpdatedPrefix: "آخرین بروزرسانی",
+    lastUpdatedPlaceholder: "آخرین بروزرسانی: --",
+  },
+};

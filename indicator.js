@@ -2,10 +2,11 @@ import St from "gi://St";
 import Clutter from "gi://Clutter";
 import GLib from "gi://GLib";
 import GObject from "gi://GObject";
-import Soup from "gi://Soup?version=3.0";
+import Soup from "gi://Soup";
 import * as PanelMenu from "resource:///org/gnome/shell/ui/panelMenu.js";
 import Pango from "gi://Pango";
 import {
+  WORKER_URL,
   SYMBOL_GROUPS,
   GROUP_MAP,
   MARQUEE_GAP_STYLES,
@@ -13,6 +14,7 @@ import {
   MAX_VIEWPORT_WIDTH,
   MIN_VIEWPORT_WIDTH,
   TICK_MS,
+  UI_STRINGS,
 } from "./constants.js";
 import { formatTrend, getSymbolFromKey, getItemKeyAndLabels } from "./utils.js";
 import { MenuBuilder } from "./menuBuilder.js";
@@ -90,13 +92,46 @@ const BahaIndicator = GObject.registerClass(
       this.add_child(this._viewport);
     }
 
+    loadCachedData() {
+      const cached = this._getCachedData();
+      if (cached) {
+        this.setData(cached, false);
+      }
+    }
+
+    _getCachedData() {
+      const cached = this._settings.get_string("cached-data");
+      if (!cached) {
+        return null;
+      }
+      return JSON.parse(cached);
+    }
+
+    fetchAndUpdate() {
+      const message = Soup.Message.new("GET", WORKER_URL);
+
+      this._session.send_and_read_async(
+        message,
+        GLib.PRIORITY_DEFAULT,
+        null,
+        (session, result) => {
+          const bytes = session.send_and_read_finish(result);
+          const text = new TextDecoder().decode(bytes.get_data());
+          const json = JSON.parse(text);
+
+          this._settings.set_string("cached-data", text);
+          this.setData(json, false);
+        },
+      );
+    }
+
     setData(json, isError) {
       if (!isError && json) {
         this._lastData = json;
       }
       if (!this._lastData) {
-        this._baseText =
-          this._settings.get_string("language") === "en" ? "Baha" : "بها";
+        const lang = this._settings.get_string("language");
+        this._baseText = UI_STRINGS[lang].appName;
         this._applyText();
         return;
       }
@@ -109,7 +144,7 @@ const BahaIndicator = GObject.registerClass(
       const parts = [];
 
       if (!data) {
-        this._baseText = lang === "en" ? "Baha" : "بها";
+        this._baseText = UI_STRINGS[lang].appName;
         this._applyText();
         return;
       }
@@ -152,13 +187,11 @@ const BahaIndicator = GObject.registerClass(
       const separator = this._settings.get_string("separator") || "|";
       this._baseText = parts.length
         ? parts.join(`  ${separator} `)
-        : lang === "en"
-          ? "Baha"
-          : "بها";
+        : UI_STRINGS[lang].appName;
 
       const lastUpdateItem = this._menuBuilder.getLastUpdateItem();
       if (data.date && lastUpdateItem) {
-        const prefix = lang === "fa" ? "آخرین بروزرسانی" : "Last updated";
+        const prefix = UI_STRINGS[lang].lastUpdatedPrefix;
         const date = lang === "fa" ? `\u200E${data.date}\u200E` : data.date;
         lastUpdateItem.label.set_text(`${prefix}: ${date}`);
       }
@@ -186,10 +219,7 @@ const BahaIndicator = GObject.registerClass(
       this._marqueeGeneration++;
       const myGeneration = this._marqueeGeneration;
 
-      if (this._marqueeTimeoutId) {
-        GLib.source_remove(this._marqueeTimeoutId);
-        this._marqueeTimeoutId = null;
-      }
+      this._stopMarqueeLoop();
 
       this._track.set_position(0, 0);
       this._labelB.hide();
@@ -224,7 +254,16 @@ const BahaIndicator = GObject.registerClass(
       this._startMarqueeLoop(unitWidth, myGeneration);
     }
 
+    _stopMarqueeLoop() {
+      if (this._marqueeTimeoutId) {
+        GLib.source_remove(this._marqueeTimeoutId);
+        this._marqueeTimeoutId = null;
+      }
+    }
+
     _startMarqueeLoop(loopWidth, myGeneration) {
+      this._stopMarqueeLoop();
+
       const PIXELS_PER_SECOND =
         SPEED_MAP[this._settings.get_string("marquee-speed")] ??
         SPEED_MAP.medium;
@@ -250,10 +289,7 @@ const BahaIndicator = GObject.registerClass(
 
     destroy() {
       this._marqueeGeneration++;
-      if (this._marqueeTimeoutId) {
-        GLib.source_remove(this._marqueeTimeoutId);
-        this._marqueeTimeoutId = null;
-      }
+      this._stopMarqueeLoop();
       if (this._applyTextDebounceId) {
         GLib.source_remove(this._applyTextDebounceId);
         this._applyTextDebounceId = null;
@@ -263,9 +299,7 @@ const BahaIndicator = GObject.registerClass(
         this._settingsChangedId = null;
       }
       if (this._session) {
-        try {
-          this._session.abort();
-        } catch (e) {}
+        this._session.abort();
         this._session = null;
       }
       super.destroy();

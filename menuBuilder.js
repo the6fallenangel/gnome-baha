@@ -2,7 +2,7 @@ import St from "gi://St";
 import Gio from "gi://Gio";
 import Clutter from "gi://Clutter";
 import * as PopupMenu from "resource:///org/gnome/shell/ui/popupMenu.js";
-import { LANGUAGES, SYMBOL_GROUPS } from "./constants.js";
+import { LANGUAGES, SYMBOL_GROUPS, UI_STRINGS } from "./constants.js";
 import { getItemKeyAndLabels } from "./utils.js";
 
 export class MenuBuilder {
@@ -79,9 +79,9 @@ export class MenuBuilder {
   }
 
   _buildLanguageMenu(menu, lang) {
-    const label = lang === "en" ? "Language" : "زبان";
-    this._langSubMenu = new PopupMenu.PopupSubMenuMenuItem(label);
-    this._langSubMenuLabels = { en: "Language", fa: "زبان" };
+    this._langSubMenu = new PopupMenu.PopupSubMenuMenuItem(
+      UI_STRINGS[lang].language,
+    );
 
     for (const [code, labelText] of LANGUAGES) {
       const langItem = new PopupMenu.PopupMenuItem(labelText);
@@ -97,10 +97,10 @@ export class MenuBuilder {
   }
 
   _buildLastUpdateItem(menu, lang) {
-    const text = lang === "en" ? "Last updated: --" : "آخرین بروزرسانی";
-    this._lastUpdateItem = new PopupMenu.PopupMenuItem(text, {
-      reactive: false,
-    });
+    this._lastUpdateItem = new PopupMenu.PopupMenuItem(
+      UI_STRINGS[lang].lastUpdatedPlaceholder,
+      { reactive: false },
+    );
     this._lastUpdateItem.visible =
       this._settings.get_boolean("show-last-updated");
     menu.addMenuItem(this._lastUpdateItem);
@@ -179,7 +179,7 @@ export class MenuBuilder {
       item.label.text = labels[lang];
     }
 
-    this._langSubMenu.label.text = this._langSubMenuLabels[lang];
+    this._langSubMenu.label.text = UI_STRINGS[lang].language;
     this._updateLanguageOrnaments();
   }
 
