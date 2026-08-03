@@ -16,7 +16,12 @@ import {
   TICK_MS,
   UI_STRINGS,
 } from "./constants.js";
-import { formatTrend, getSymbolFromKey, getItemKeyAndLabels } from "./utils.js";
+import {
+  formatPrice,
+  formatTrend,
+  getSymbolFromKey,
+  getItemKeyAndLabels,
+} from "./utils.js";
 import { MenuBuilder } from "./menuBuilder.js";
 
 const BahaIndicator = GObject.registerClass(
@@ -149,6 +154,9 @@ const BahaIndicator = GObject.registerClass(
         return;
       }
 
+      const currencyDisplay = this._settings.get_string("currency-display");
+      const usdRate = Number(data.currency?.USD?.current);
+
       for (const group of SYMBOL_GROUPS) {
         const dataKey = GROUP_MAP[group.id];
         const dataGroup = data[dataKey];
@@ -162,8 +170,12 @@ const BahaIndicator = GObject.registerClass(
           if (!value) continue;
 
           const widgets = this._symbolWidgetsByKey.get(key);
-          const numericValue = Number(value);
-          const formatted = numericValue.toLocaleString();
+          const formatted = formatPrice(
+            value,
+            usdRate,
+            currencyDisplay,
+            symbol === "USD",
+          );
 
           let trend = { text: "", style: "" };
 

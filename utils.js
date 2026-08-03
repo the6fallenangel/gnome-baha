@@ -34,6 +34,21 @@ export function formatTrend(currentStr, minObj, maxObj) {
   return { text: "→", style: "" };
 }
 
+export function formatPrice(value, usdRate, currencyDisplay, forceToman = false) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return "";
+
+  if (!forceToman && currencyDisplay === "usd" && usdRate > 0) {
+    const dollars = num / usdRate;
+    const digits = dollars < 1 ? 4 : 2;
+    return `$${dollars.toLocaleString(undefined, {
+      maximumFractionDigits: digits,
+    })}`;
+  }
+
+  return num.toLocaleString();
+}
+
 export function getSymbolFromKey(key) {
   const rawSymbol = key.replace("show-", "");
   return (

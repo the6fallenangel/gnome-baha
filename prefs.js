@@ -56,6 +56,19 @@ export default class BahaPreferences extends ExtensionPreferences {
     );
 
     generalGroup.add(
+      this._buildStringCombo(
+        settings,
+        "currency-display",
+        t.currencyDisplayTitle,
+        t.currencyDisplaySubtitle,
+        [
+          { value: "toman", label: t.toman },
+          { value: "usd", label: t.dollar },
+        ],
+      ),
+    );
+
+    generalGroup.add(
       this._buildStringCombo(settings, "marquee-speed", t.speedTitle, null, [
         { value: "slow", label: t.slow },
         { value: "medium", label: t.medium },
