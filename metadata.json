@@ -4,7 +4,7 @@
   "description": "A lightweight extension that brings live gold, currency, coin, and cryptocurrency rates to your top bar, built with Persian-speaking users in mind. Supports both Persian and English with full customization.",
   "shell-version": ["45", "46", "47", "48", "49", "50"],
   "url": "https://github.com/the6fallenangel/gnome-baha",
-  "version": 5,
+  "version": 6,
   "settings-schema": "org.gnome.shell.extensions.baha",
   "icon": "gnome-baha"
 }
