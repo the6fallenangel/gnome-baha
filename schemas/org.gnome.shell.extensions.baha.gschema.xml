@@ -169,6 +169,15 @@
       <summary>Separator character between symbols in the panel</summary>
     </key>
 
+    <key name="currency-display" type="s">
+      <choices>
+        <choice value='toman'/>
+        <choice value='usd'/>
+      </choices>
+      <default>'toman'</default>
+      <summary>Price display currency: toman or US dollar</summary>
+    </key>
+
     <key name="show-trend-in-panel" type="b">
       <default>false</default>
       <summary>Show the up/down trend arrow in the panel label too</summary>
