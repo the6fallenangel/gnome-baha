@@ -6,10 +6,11 @@ import { LANGUAGES, SYMBOL_GROUPS, UI_STRINGS } from "./constants.js";
 import { getItemKeyAndLabels } from "./utils.js";
 
 export class MenuBuilder {
-  constructor(settings, extension, symbolWidgetsByKey) {
+  constructor(settings, extension, symbolWidgetsByKey, onRefresh) {
     this._settings = settings;
     this._extension = extension;
     this._symbolWidgetsByKey = symbolWidgetsByKey;
+    this._onRefresh = onRefresh;
     this._symbolGroups = [];
     this._symbolItems = [];
     this._langItems = {};
@@ -113,8 +114,20 @@ export class MenuBuilder {
     });
 
     const leftSpacer = new St.Widget({ x_expand: true });
-    const midSpacer = new St.Widget({ x_expand: true });
+    const midSpacerA = new St.Widget({ x_expand: true });
+    const midSpacerB = new St.Widget({ x_expand: true });
     const rightSpacer = new St.Widget({ x_expand: true });
+
+    const refreshButton = new St.Button({
+      style_class: "baha-footer-button",
+      child: new St.Icon({
+        icon_name: "view-refresh-symbolic",
+        icon_size: 16,
+      }),
+    });
+    refreshButton.connect("clicked", () => {
+      if (this._onRefresh) this._onRefresh();
+    });
 
     const settingsButton = new St.Button({
       style_class: "baha-footer-button",
@@ -144,8 +157,10 @@ export class MenuBuilder {
     });
 
     footerRow.add_child(leftSpacer);
+    footerRow.add_child(refreshButton);
+    footerRow.add_child(midSpacerA);
     footerRow.add_child(settingsButton);
-    footerRow.add_child(midSpacer);
+    footerRow.add_child(midSpacerB);
     footerRow.add_child(githubButton);
     footerRow.add_child(rightSpacer);
     menu.addMenuItem(footerRow);
