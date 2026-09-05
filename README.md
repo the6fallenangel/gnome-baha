@@ -97,7 +97,7 @@ Fine-tune Baha to match your taste:
 | Setting              | Description                                                     |
 | -------------------- | --------------------------------------------------------------- |
 | **Refresh interval** | How often new rates are fetched (10–60 minutes, min 10)         |
-| **Data source**      | Baha Cloud (shared) / Personal nerkh.io key / Custom Worker URL |
+| **Data source**      | Baha Cloud (shared) / Personal nerkh.io key / [Custom Worker URL](https://github.com/the6fallenangel/baha-worker) |
 | **Marquee speed**    | Slow, medium, or fast scrolling                                 |
 | **Gap style**        | The pattern shown between repeated text while scrolling         |
 | **Separator**        | The character shown between symbols in the panel                |
@@ -206,7 +206,7 @@ gnome-extensions enable gnome-baha@the6fallenangel.github.io
     </tr>
     <tr>
       <td><strong>منبع داده</strong></td>
-      <td>ابری بها (اشتراکی) / کلید شخصی nerkh.io / آدرس ورکر شخصی</td>
+      <td>ابری بها (اشتراکی) / کلید شخصی nerkh.io / <a href="https://github.com/the6fallenangel/baha-worker">آدرس ورکر شخصی</a></td>
     </tr>
     <tr>
       <td><strong>سرعت اسکرول</strong></td>
