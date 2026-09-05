@@ -1,8 +1,10 @@
 import Adw from "gi://Adw";
 import Gio from "gi://Gio";
 import Gtk from "gi://Gtk";
+import GLib from "gi://GLib";
+import Soup from "gi://Soup";
 import { ExtensionPreferences } from "resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js";
-import { PREFS_STRINGS } from "./constants.js";
+import { PREFS_STRINGS, WORKER_URL, NERKH_DIRECT_URL } from "./constants.js";
 
 export default class BahaPreferences extends ExtensionPreferences {
   fillPreferencesWindow(window) {
@@ -29,8 +31,6 @@ export default class BahaPreferences extends ExtensionPreferences {
         t.intervalTitle,
         t.intervalSubtitle,
         [
-          { value: 3, label: t.minutes3 },
-          { value: 5, label: t.minutes5 },
           { value: 10, label: t.minutes10 },
           { value: 15, label: t.minutes15 },
           { value: 30, label: t.minutes30 },
@@ -113,6 +113,190 @@ export default class BahaPreferences extends ExtensionPreferences {
     });
     generalGroup.add(lastUpdatedRow);
 
+    const dataSourceGroup = new Adw.PreferencesGroup({
+      title: t.dataSourceGroup,
+      description: t.quotaWarning,
+    });
+    page.add(dataSourceGroup);
+
+    const sourceChoices = [
+      { value: "worker", label: t.workerOption },
+      { value: "direct", label: t.directOption },
+      { value: "custom-worker", label: t.customWorkerOption },
+    ];
+    const dataSourceRow = this._buildStringCombo(
+      settings,
+      "api-source",
+      t.dataSourceTitle,
+      t.dataSourceSubtitle,
+      sourceChoices,
+    );
+    dataSourceGroup.add(dataSourceRow);
+
+    const apiKeyRow = new Adw.EntryRow({
+      title: t.apiKeyTitle,
+      text: settings.get_string("nerkh-api-key"),
+      show_apply_button: true,
+    });
+    apiKeyRow.set_input_purpose(Gtk.InputPurpose.PASSWORD);
+    dataSourceGroup.add(apiKeyRow);
+
+    const customWorkerRow = new Adw.EntryRow({
+      title: t.customWorkerUrlTitle,
+      text: settings.get_string("custom-worker-url"),
+      show_apply_button: true,
+    });
+    dataSourceGroup.add(customWorkerRow);
+
+    const quotaInfoRow = new Adw.ActionRow({
+      title: t.directQuotaWarning,
+      subtitle: t.apiKeySubtitle,
+    });
+    quotaInfoRow.add_css_class("boxed-list");
+    dataSourceGroup.add(quotaInfoRow);
+
+    const getKeyRow = new Adw.ActionRow({
+      title: t.getFreeKeyLabel,
+      subtitle: "cp.nerkh.io",
+      activatable: true,
+    });
+    getKeyRow.add_suffix(new Gtk.Image({ icon_name: "external-link-symbolic" }));
+    getKeyRow.connect("activated", () => {
+      Gio.AppInfo.launch_default_for_uri("https://cp.nerkh.io", null);
+    });
+    dataSourceGroup.add(getKeyRow);
+
+    const testRow = new Adw.ActionRow({
+      title: t.testConnectionLabel,
+      subtitle: t.testConnectionSubtitle,
+      activatable: true,
+    });
+    const testSpinner = new Gtk.Spinner({ visible: false });
+    const testIcon = new Gtk.Image({ icon_name: "emblem-ok-symbolic", visible: false });
+    testRow.add_suffix(testSpinner);
+    testRow.add_suffix(testIcon);
+    testRow.add_suffix(new Gtk.Image({ icon_name: "system-run-symbolic" }));
+    dataSourceGroup.add(testRow);
+
+    const applyApiKey = () => {
+      settings.set_string("nerkh-api-key", apiKeyRow.text.trim());
+    };
+    apiKeyRow.connect("apply", applyApiKey);
+    apiKeyRow.connect("entry-activated", applyApiKey);
+
+    const applyWorkerUrl = () => {
+      settings.set_string("custom-worker-url", customWorkerRow.text.trim());
+    };
+    customWorkerRow.connect("apply", applyWorkerUrl);
+    customWorkerRow.connect("entry-activated", applyWorkerUrl);
+
+    apiKeyRow.connect("notify::text", () => {});
+
+    const updateVisibility = () => {
+      const src = settings.get_string("api-source");
+      apiKeyRow.visible = src === "direct";
+      customWorkerRow.visible = src === "custom-worker";
+      quotaInfoRow.visible = src === "direct";
+      getKeyRow.visible = src === "direct";
+      if (src === "worker") {
+        testRow.subtitle = `${WORKER_URL}`;
+      } else if (src === "direct") {
+        testRow.subtitle = NERKH_DIRECT_URL;
+      } else {
+        const url = settings.get_string("custom-worker-url") || "https://...";
+        testRow.subtitle = url;
+      }
+    };
+    updateVisibility();
+    dataSourceRow.connect("notify::selected", updateVisibility);
+    settings.connect("changed::api-source", updateVisibility);
+    settings.connect("changed::custom-worker-url", updateVisibility);
+
+    testRow.connect("activated", () => {
+      const src = settings.get_string("api-source");
+      let url = WORKER_URL;
+      let apiKey = "";
+      if (src === "direct") {
+        url = NERKH_DIRECT_URL;
+        apiKey = apiKeyRow.text.trim() || settings.get_string("nerkh-api-key").trim();
+        if (!apiKey) {
+          const win = testRow.get_ancestor(Gtk.Window);
+          win.add_toast(new Adw.Toast({ title: t.apiKeyEmptyWarning, timeout: 3 }));
+          return;
+        }
+      } else if (src === "custom-worker") {
+        url = customWorkerRow.text.trim() || settings.get_string("custom-worker-url").trim();
+        if (!url) {
+          const win = testRow.get_ancestor(Gtk.Window);
+          win.add_toast(new Adw.Toast({ title: t.customWorkerEmptyWarning, timeout: 3 }));
+          return;
+        }
+      }
+
+      testSpinner.visible = true;
+      testSpinner.start();
+      testIcon.visible = false;
+      testRow.sensitive = false;
+
+      const session = new Soup.Session();
+      const msg = Soup.Message.new("GET", url);
+      if (src === "direct" && apiKey) {
+        msg.request_headers.append("Authorization", `Bearer ${apiKey}`);
+      }
+
+      session.send_and_read_async(msg, GLib.PRIORITY_DEFAULT, null, (s, res) => {
+        testSpinner.stop();
+        testSpinner.visible = false;
+        testRow.sensitive = true;
+        let bytes;
+        try {
+          bytes = s.send_and_read_finish(res);
+        } catch (e) {
+          console.error(e);
+          const win = testRow.get_ancestor(Gtk.Window);
+          win.add_toast(new Adw.Toast({ title: `${t.connectionFailed}: ${e.message}`, timeout: 4 }));
+          return;
+        }
+        const status = msg.get_status();
+        const win = testRow.get_ancestor(Gtk.Window);
+        if (status === 460) {
+          win.add_toast(new Adw.Toast({ title: t.quotaExceededMsg, timeout: 4 }));
+          return;
+        }
+        if (status >= 200 && status < 300 && bytes) {
+          const text = new TextDecoder().decode(bytes.get_data());
+          let json;
+          try {
+            json = JSON.parse(text);
+          } catch (e) {
+            console.error(e);
+            win.add_toast(new Adw.Toast({ title: `${t.connectionFailed}: Invalid JSON`, timeout: 4 }));
+            return;
+          }
+          if (json && (json.data || json.code === 460)) {
+            if (json.code === 460) {
+              win.add_toast(new Adw.Toast({ title: t.quotaExceededMsg, timeout: 4 }));
+            } else {
+              testIcon.visible = true;
+              win.add_toast(new Adw.Toast({ title: t.connectionSuccess, timeout: 3 }));
+              GLib.timeout_add(GLib.PRIORITY_DEFAULT, 2000, () => {
+                testIcon.visible = false;
+                return GLib.SOURCE_REMOVE;
+              });
+            }
+          } else if (json && json.error) {
+            win.add_toast(new Adw.Toast({ title: `${t.connectionFailed}: ${json.error}`, timeout: 4 }));
+          } else {
+            testIcon.visible = true;
+            win.add_toast(new Adw.Toast({ title: t.connectionSuccess, timeout: 3 }));
+          }
+        } else {
+          const win2 = testRow.get_ancestor(Gtk.Window);
+          win2.add_toast(new Adw.Toast({ title: `${t.connectionFailed} (HTTP ${status})`, timeout: 4 }));
+        }
+      });
+    });
+
     const aboutGroup = new Adw.PreferencesGroup({ title: t.aboutGroup });
     page.add(aboutGroup);
 
@@ -179,8 +363,12 @@ export default class BahaPreferences extends ExtensionPreferences {
     const row = new Adw.ComboRow({ title, subtitle, model });
 
     const currentValue = settings.get_int(key);
-    const currentIndex = choices.findIndex((c) => c.value === currentValue);
-    row.selected = currentIndex >= 0 ? currentIndex : 0;
+    let currentIndex = choices.findIndex((c) => c.value === currentValue);
+    if (currentIndex < 0) {
+      currentIndex = 0;
+      settings.set_int(key, choices[0].value);
+    }
+    row.selected = currentIndex;
 
     row.connect("notify::selected", () => {
       settings.set_int(key, choices[row.selected].value);
