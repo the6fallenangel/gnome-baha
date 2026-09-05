@@ -43,6 +43,7 @@ No sign-ups. No bloated dashboards. No accounts to manage. Just glance up, and y
 - 🔄 **Trend indicators** — instantly see whether a price is heading up ▲ or down ▼, both in the menu and optionally right in the panel.
 - 🌗 **Fully bilingual** — a beautifully translated interface in both **English** and **پارسی**, switchable anytime with one click.
 - 🎨 **Make it yours** — customize the scroll speed, the separator style, the gap pattern between repeated text, and how often data refreshes.
+- 🔌 **Bring your own key** — use Baha Cloud (shared) or your own `nerkh.io` API key / custom Worker URL. Perfect for the `460 QuotaExceeded` era.
 - 🪶 **Lightweight & unobtrusive** — a small, elegant marquee that only scrolls when it actually needs to, and stays out of your way otherwise.
 - 🔒 **Privacy-respecting** — no accounts, no personal data collected, no tracking. Ever.
 - 💸 **Completely free & open-source** — forever. Licensed under GPLv3.
@@ -84,6 +85,7 @@ Then log out and back in (or restart GNOME Shell on X11 with <kbd>Alt</kbd>+<kbd
 Click the Baha indicator in your top bar to:
 
 - ✅ Toggle any symbol on or off — see its current value right there in the menu, even before enabling it
+- 🔄 Refresh rates manually — hit the refresh button in the popup footer beside the gear/browser icons
 - 🌐 Switch between English and Persian instantly
 - ⚙️ Open full preferences for fine-grained control
 - 🔗 Jump straight to this repository
@@ -92,14 +94,15 @@ Click the Baha indicator in your top bar to:
 
 Fine-tune Baha to match your taste:
 
-| Setting              | Description                                               |
-| -------------------- | --------------------------------------------------------- |
-| **Refresh interval** | How often new rates are fetched (3–60 minutes)            |
-| **Marquee speed**    | Slow, medium, or fast scrolling                           |
-| **Gap style**        | The pattern shown between repeated text while scrolling   |
-| **Separator**        | The character shown between symbols in the panel          |
-| **Trend arrows**     | Show ▲/▼ indicators right in the panel, not just the menu |
-| **Last updated**     | Show or hide the last-refresh timestamp in the menu       |
+| Setting              | Description                                                     |
+| -------------------- | --------------------------------------------------------------- |
+| **Refresh interval** | How often new rates are fetched (10–60 minutes, min 10)         |
+| **Data source**      | Baha Cloud (shared) / Personal nerkh.io key / Custom Worker URL |
+| **Marquee speed**    | Slow, medium, or fast scrolling                                 |
+| **Gap style**        | The pattern shown between repeated text while scrolling         |
+| **Separator**        | The character shown between symbols in the panel                |
+| **Trend arrows**     | Show ▲/▼ indicators right in the panel, not just the menu       |
+| **Last updated**     | Show or hide the last-refresh timestamp in the menu             |
 
 ## 🤝 Contributing
 
@@ -138,6 +141,7 @@ Baha is free software, licensed under the [GNU General Public License v3.0](LICE
 - 🔄 **نمایش روند قیمت** — فلش ▲ و ▼ افزایش و کاهش قیمت، هم توی منو و هم (اختیاری) توی نوار بالا.
 - 🌐 **کاملاً دو زبانه** — رابط کاربری پارسی و انگلیسی، با یک کلیک عوض می‌شه.
 - 🎨 **شخصی‌سازی بالا** — سرعت اسکرول، جداکننده، فاصله بین متن‌ها و زمان بروزرسانی رو خودت تنظیم کن.
+- 🔌 **کلید شخصی** — از ابری بها (اشتراکی) یا کلید شخصی `nerkh.io` / آدرس ورکر خودت استفاده کن. راه حل خطای `۴۶۰ QuotaExceeded`.
 - 🪶 **سبک و بدون لگ** — فقط وقتی متن جا نشه اسکرول می‌کنه وگرنه توی نوار ثابت می‌مونه.
 - 🔒 **حریم خصوصی** — هیچ ردیابی، هیچ حساب کاربری، هیچ جمع‌آوری اطلاعاتی.
 - 💸 **رایگان و اوپن‌سورس** — تحت لیسانس GPLv3، برای همیشه.
@@ -179,6 +183,7 @@ gnome-extensions enable gnome-baha@the6fallenangel.github.io
 روی بها در نوار بالا کلیک کن تا:
 
 - ✅ هر نمادی رو فعال یا غیرفعال کنی (قیمت لحظه‌ای‌اش رو هم همونجا می‌بینی)
+- 🔄 نرخ‌ها را دستی بروز کنی — دکمه بروزرسانی در فوتر پاپ‌آپ کنار آیکون‌های دیگر
 - 🌐 بین پارسی و انگلیسی جابه‌جا بشی
 - ⚙️ تنظیمات کامل رو باز کنی
 - 🔗 مستقیم به این صفحه گیت‌هاب بیای
@@ -197,7 +202,11 @@ gnome-extensions enable gnome-baha@the6fallenangel.github.io
   <tbody>
     <tr>
       <td><strong>فاصله بروزرسانی</strong></td>
-      <td>هر چند دقیقه بهای جدید دریافت شه؟ (۳ تا ۶۰ دقیقه)</td>
+      <td>هر چند دقیقه بهای جدید دریافت شه؟ (۱۰ تا ۶۰ دقیقه، حداقل ۱۰)</td>
+    </tr>
+    <tr>
+      <td><strong>منبع داده</strong></td>
+      <td>ابری بها (اشتراکی) / کلید شخصی nerkh.io / آدرس ورکر شخصی</td>
     </tr>
     <tr>
       <td><strong>سرعت اسکرول</strong></td>
