@@ -168,7 +168,8 @@ const BahaIndicator = GObject.registerClass(
             json = JSON.parse(text);
           } catch (e) {
             console.error(e);
-            this._handleFetchError(status, "Invalid JSON");
+            const lang = this._settings.get_string("language") === "fa" ? "fa" : "en";
+            this._handleFetchError(status, UI_STRINGS[lang].invalidJson);
             return;
           }
           if (json && json.code === 460) {
@@ -188,16 +189,12 @@ const BahaIndicator = GObject.registerClass(
 
     _handleQuotaExceeded(source) {
       const lang = this._settings.get_string("language") === "fa" ? "fa" : "en";
-      const msg =
-        lang === "fa"
-          ? "سهمیه ۴۶۰ تمام شد — منبع را در تنظیمات عوض کنید"
-          : "Quota 460 exceeded — change source in Preferences";
-      this._showErrorState(msg);
+      this._showErrorState(UI_STRINGS[lang].quotaExceeded);
     }
 
     _handleFetchError(status, detail) {
       const lang = this._settings.get_string("language") === "fa" ? "fa" : "en";
-      const base = lang === "fa" ? "خطا در دریافت" : "Fetch failed";
+      const base = UI_STRINGS[lang].fetchFailed;
       const msg = detail ? `${base}: ${detail}` : `${base} (HTTP ${status})`;
       this._showErrorState(msg);
     }

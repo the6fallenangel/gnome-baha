@@ -233,11 +233,17 @@ export const UI_STRINGS = {
     language: "Language",
     lastUpdatedPrefix: "Last updated",
     lastUpdatedPlaceholder: "Last updated: --",
+    quotaExceeded: "Quota 460 exceeded — change source in Preferences",
+    fetchFailed: "Fetch failed",
+    invalidJson: "Invalid JSON",
   },
   fa: {
     appName: "بها",
     language: "زبان",
     lastUpdatedPrefix: "آخرین بروزرسانی",
     lastUpdatedPlaceholder: "آخرین بروزرسانی: --",
+    quotaExceeded: "سهمیه ۴۶۰ تمام شد — منبع را در تنظیمات عوض کنید",
+    fetchFailed: "خطا در دریافت",
+    invalidJson: "JSON نامعتبر",
   },
 };
