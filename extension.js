@@ -6,6 +6,9 @@ import BahaIndicator from "./indicator.js";
 export default class BahaExtension extends Extension {
   enable() {
     this._settings = this.getSettings();
+    if (this._settings.get_int("refresh-interval-minutes") < 10) {
+      this._settings.set_int("refresh-interval-minutes", 10);
+    }
     this._indicator = new BahaIndicator(this._settings, this);
     Main.panel.addToStatusArea("baha-indicator", this._indicator);
 
@@ -42,8 +45,8 @@ export default class BahaExtension extends Extension {
     const minutes = this._settings.get_int("refresh-interval-minutes");
     let seconds = minutes * 60;
 
-    if (seconds < 180) {
-      seconds = 180;
+    if (seconds < 600) {
+      seconds = 600;
     }
 
     this._timeoutId = GLib.timeout_add_seconds(

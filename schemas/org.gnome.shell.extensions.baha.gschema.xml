@@ -1,7 +1,6 @@
 <schemalist>
   <schema id="org.gnome.shell.extensions.baha" path="/org/gnome/shell/extensions/baha/">
 
-    <!-- Gold -->
     <key name="show-gold18k" type="b">
       <default>true</default>
       <summary>Show 18K Gold</summary>
@@ -48,7 +47,6 @@
     </key>
 
 
-    <!-- Parsian -->
     <key name="show-seke-prs100" type="b">
       <default>false</default>
       <summary>Show Parsian 100</summary>
@@ -75,7 +73,6 @@
     </key>
 
 
-    <!-- Currency -->
     <key name="show-usd" type="b">
       <default>true</default>
       <summary>Show USD</summary>
@@ -102,7 +99,6 @@
     </key>
 
 
-    <!-- Crypto -->
     <key name="show-btc" type="b">
       <default>false</default>
       <summary>Show Bitcoin</summary>
@@ -124,15 +120,14 @@
     </key>
 
 
-    <!-- General -->
     <key name="language" type="s">
       <default>'en'</default>
       <summary>Display language</summary>
     </key>
 
     <key name="refresh-interval-minutes" type="i">
-      <range min="3" max="30"/>
-      <default>3</default>
+      <range min="10" max="60"/>
+      <default>10</default>
       <summary>Refresh interval in minutes</summary>
     </key>
 
@@ -191,6 +186,26 @@
     <key name="cached-data" type="s">
       <default>''</default>
       <summary>Save api data for caching system</summary>
+    </key>
+
+    <key name="api-source" type="s">
+      <choices>
+        <choice value='worker'/>
+        <choice value='direct'/>
+        <choice value='custom-worker'/>
+      </choices>
+      <default>'worker'</default>
+      <summary>Data source</summary>
+    </key>
+
+    <key name="nerkh-api-key" type="s">
+      <default>''</default>
+      <summary>nerkh.io API key for direct mode</summary>
+    </key>
+
+    <key name="custom-worker-url" type="s">
+      <default>''</default>
+      <summary>Custom worker URL</summary>
     </key>
   </schema>
 </schemalist>

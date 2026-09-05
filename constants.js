@@ -1,6 +1,8 @@
 export const WORKER_URL =
   "https://baha-worker.the6fallenangels.workers.dev/latest";
 
+export const NERKH_DIRECT_URL = "https://api.nerkh.io/v1/prices/json/all";
+
 export const MIN_VIEWPORT_WIDTH = 50;
 export const MAX_VIEWPORT_WIDTH = 220;
 export const TICK_MS = 30;
@@ -87,7 +89,7 @@ export const PREFS_STRINGS = {
     pageTitle: "Baha",
     generalGroup: "General",
     intervalTitle: "Refresh interval",
-    intervalSubtitle: "How often to fetch new rates (minimum 3 minutes)",
+    intervalSubtitle: "How often to fetch new rates (minimum 10 minutes)",
     gapTitle: "Marquee gap style",
     gapSubtitle: "Style shown between repeated text when scrolling",
     speedTitle: "Marquee speed",
@@ -130,12 +132,35 @@ export const PREFS_STRINGS = {
     slash: "Slash: /",
     space: "Space",
     languageChanged: "Language changed. Please reopen.",
+    dataSourceGroup: "Data Source",
+    dataSourceTitle: "Data source",
+    dataSourceSubtitle: "Choose where prices are fetched from",
+    workerOption: "Baha Cloud (shared, recommended)",
+    directOption: "Personal nerkh.io key (direct)",
+    customWorkerOption: "Custom Worker URL",
+    apiKeyTitle: "nerkh.io API Key",
+    apiKeySubtitle: "Get a free key at cp.nerkh.io (465 req/month)",
+    customWorkerUrlTitle: "Worker URL",
+    customWorkerUrlSubtitle:
+      "Your deployed worker URL, e.g. https://your-worker.workers.dev/latest",
+    testConnectionLabel: "Test Connection",
+    testConnectionSubtitle: "Verify your key or worker",
+    quotaWarning:
+      "Free tier: 6/hour, 150/day, 465/month — use 90min interval or Baha Cloud",
+    directQuotaWarning:
+      "Free key = ~15/day. Use 30-60min refresh to avoid 460 QuotaExceeded",
+    getFreeKeyLabel: "Get free key at cp.nerkh.io",
+    apiKeyEmptyWarning: "API key is empty — add your nerkh.io key",
+    customWorkerEmptyWarning: "Worker URL is empty",
+    connectionSuccess: "Connection successful!",
+    connectionFailed: "Connection failed — check key/URL",
+    quotaExceededMsg: "Quota exceeded (460) — please try later or use another source",
   },
   fa: {
     pageTitle: "بها",
     generalGroup: "تنظیمات عمومی",
     intervalTitle: "فاصله بروزرسانی",
-    intervalSubtitle: "هر چند وقت یک‌بار نرخ‌ها بروزرسانی شوند (حداقل ۳ دقیقه)",
+    intervalSubtitle: "هر چند وقت یک‌بار نرخ‌ها بروزرسانی شوند (حداقل ۱۰ دقیقه)",
     gapTitle: "طرح فاصله بین تکرار متن",
     gapSubtitle: "طرحی که بین تکرار متن هنگام اسکرول نمایش داده می‌شود.",
     speedTitle: "سرعت اسکرول",
@@ -176,6 +201,29 @@ export const PREFS_STRINGS = {
     slash: "اسلش: /",
     space: "فاصله",
     languageChanged: "زبان تغییر کرد. دوباره باز کنید.",
+    dataSourceGroup: "منبع داده",
+    dataSourceTitle: "منبع داده",
+    dataSourceSubtitle: "انتخاب کنید قیمت‌ها از کجا دریافت شوند",
+    workerOption: "ابری بها (اشتراکی، پیشنهادی)",
+    directOption: "کلید شخصی nerkh.io (مستقیم)",
+    customWorkerOption: "آدرس ورکر شخصی",
+    apiKeyTitle: "کلید nerkh.io",
+    apiKeySubtitle: "کلید رایگان از cp.nerkh.io (۴۶۵ درخواست در ماه)",
+    customWorkerUrlTitle: "آدرس ورکر",
+    customWorkerUrlSubtitle:
+      "آدرس ورکر خودتان، مثلا https://your-worker.workers.dev/latest",
+    testConnectionLabel: "بررسی اتصال",
+    testConnectionSubtitle: "صحت کلید یا ورکر را بررسی کنید",
+    quotaWarning:
+      "سهمیه رایگان: ۶ در ساعت، ۱۵۰ در روز، ۴۶۵ در ماه — از فاصله ۹۰ دقیقه یا ابری بها استفاده کنید",
+    directQuotaWarning:
+      "کلید رایگان ≈ ۱۵ درخواست در روز. برای جلوگیری از خطای ۴۶۰ از فاصله ۳۰-۶۰ دقیقه استفاده کنید",
+    getFreeKeyLabel: "دریافت کلید رایگان از cp.nerkh.io",
+    apiKeyEmptyWarning: "کلید خالی است — کلید nerkh.io را وارد کنید",
+    customWorkerEmptyWarning: "آدرس ورکر خالی است",
+    connectionSuccess: "اتصال موفق!",
+    connectionFailed: "اتصال ناموفق — کلید/آدرس را بررسی کنید",
+    quotaExceededMsg: "سهمیه تمام شد (۴۶۰) — بعدا تلاش کنید یا منبع دیگری انتخاب کنید",
   },
 };
 
