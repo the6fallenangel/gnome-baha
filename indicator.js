@@ -7,6 +7,7 @@ import * as PanelMenu from "resource:///org/gnome/shell/ui/panelMenu.js";
 import Pango from "gi://Pango";
 import {
   WORKER_URL,
+  NERKH_DIRECT_URL,
   SYMBOL_GROUPS,
   GROUP_MAP,
   MARQUEE_GAP_STYLES,
@@ -38,6 +39,7 @@ const BahaIndicator = GObject.registerClass(
         settings,
         extension,
         this._symbolWidgetsByKey,
+        () => this.fetchAndUpdate(),
       );
       this._menuBuilder.build(this.menu);
       this.menu.actor.add_style_class_name("baha-menu");
@@ -112,23 +114,104 @@ const BahaIndicator = GObject.registerClass(
       return JSON.parse(cached);
     }
 
+    _resolveDataSource() {
+      const src = this._settings.get_string("api-source") || "worker";
+      if (src === "direct") {
+        const key = this._settings.get_string("nerkh-api-key")?.trim();
+        if (key) return { url: NERKH_DIRECT_URL, apiKey: key, source: "direct" };
+        return { url: WORKER_URL, apiKey: "", source: "worker" };
+      }
+      if (src === "custom-worker") {
+        const url = this._settings.get_string("custom-worker-url")?.trim();
+        if (url) return { url, apiKey: "", source: "custom-worker" };
+        return { url: WORKER_URL, apiKey: "", source: "worker" };
+      }
+      return { url: WORKER_URL, apiKey: "", source: "worker" };
+    }
+
     fetchAndUpdate() {
-      const message = Soup.Message.new("GET", WORKER_URL);
+      const { url, apiKey, source } = this._resolveDataSource();
+      const message = Soup.Message.new("GET", url);
+      if (source === "direct" && apiKey) {
+        message.request_headers.append("Authorization", `Bearer ${apiKey}`);
+      }
 
       this._session.send_and_read_async(
         message,
         GLib.PRIORITY_DEFAULT,
         null,
         (session, result) => {
-          const bytes = session.send_and_read_finish(result);
+          let bytes;
+          try {
+            bytes = session.send_and_read_finish(result);
+          } catch (e) {
+            console.error(e);
+            this._handleFetchError(0, e.message);
+            return;
+          }
+          const status = message.get_status();
+          if (status === 460) {
+            this._handleQuotaExceeded(source);
+            return;
+          }
+          if (!bytes || status < 200 || status >= 300) {
+            this._handleFetchError(status);
+            return;
+          }
           const text = new TextDecoder().decode(bytes.get_data());
-          const json = JSON.parse(text);
-
+          if (!text) {
+            this._handleFetchError(status);
+            return;
+          }
+          let json;
+          try {
+            json = JSON.parse(text);
+          } catch (e) {
+            console.error(e);
+            this._handleFetchError(status, "Invalid JSON");
+            return;
+          }
+          if (json && json.code === 460) {
+            this._handleQuotaExceeded(source);
+            return;
+          }
+          if (json && json.error && !json.data) {
+            this._handleFetchError(status, json.error);
+            return;
+          }
           this._settings.set_string("cached-data", text);
           this.setData(json, false);
+          this._clearErrorState();
         },
       );
     }
+
+    _handleQuotaExceeded(source) {
+      const lang = this._settings.get_string("language") === "fa" ? "fa" : "en";
+      const msg =
+        lang === "fa"
+          ? "سهمیه ۴۶۰ تمام شد — منبع را در تنظیمات عوض کنید"
+          : "Quota 460 exceeded — change source in Preferences";
+      this._showErrorState(msg);
+    }
+
+    _handleFetchError(status, detail) {
+      const lang = this._settings.get_string("language") === "fa" ? "fa" : "en";
+      const base = lang === "fa" ? "خطا در دریافت" : "Fetch failed";
+      const msg = detail ? `${base}: ${detail}` : `${base} (HTTP ${status})`;
+      this._showErrorState(msg);
+    }
+
+    _showErrorState(msg) {
+      this._baseText = msg;
+      this._applyText();
+      const lastUpdateItem = this._menuBuilder.getLastUpdateItem();
+      if (lastUpdateItem) {
+        lastUpdateItem.label.set_text(msg);
+      }
+    }
+
+    _clearErrorState() {}
 
     setData(json, isError) {
       if (!isError && json) {
